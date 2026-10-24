@@ -1,0 +1,515 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Veritas: report</title><style>
+@page { size: A4; margin: 16mm 14mm }
+body { font: 10.5pt/1.5 'Inter','Segoe UI',Arial,sans-serif; color: #111; }
+h1 { font-size: 24pt; margin: 0 0 4px } h2 { font-size: 15pt; margin: 22px 0 6px; border-bottom: 2px solid #6366f1; padding-bottom: 3px; break-after: avoid }
+h3 { font-size: 11.5pt; margin: 14px 0 4px } table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 9.2pt; break-inside: auto }
+td, th { border: 1px solid #cbd5e1; padding: 4px 7px; vertical-align: top; text-align: left } th { background: #1e293b; color: #fff }
+tr { break-inside: avoid } .sub { color: #475569 } svg { width: 100%; height: auto; break-inside: avoid } code { background: #eef2ff; padding: 0 3px; border-radius: 3px }
+.cover { padding: 60px 0 30px; border-bottom: 4px solid #6366f1 } .pill { display:inline-block; background:#eef2ff; color:#4338ca; border-radius:99px; padding:1px 9px; font-size:9pt; margin:1px }
+ul.rel { columns: 2; font-size: 9pt; padding-left: 16px } .pb { break-before: page }
+</style></head><body>
+<div class="cover"><h1>Veritas</h1><div style="font-size:14pt">Tamper-evident marks and certificate ledger on PostgreSQL</div>
+<div class="sub" style="margin-top:10px">Database Management Systems (CD252IA), RV College of Engineering &nbsp;|&nbsp; generated 24 October 2026</div></div>
+
+<h2>1. Problem and approach</h2>
+<p>Marks and certificates are changed after the fact, quietly. Veritas makes that detectable and mostly impossible <b>inside the database</b>:
+the rules live in triggers, constraints and row-level security, so no application bug, direct SQL session or clever client can skip them. Every mark
+write is an append-only, hash-chained revision; revisions are sealed into Merkle batches whose roots are pinned in an external witness;
+certificates store only a salted hash and verify publicly with a QR code.</p>
+<p><span class="pill">18 tables</span><span class="pill">109 columns</span><span class="pill">30 triggers</span><span class="pill">row-level security</span><span class="pill">hash chain</span><span class="pill">Merkle tree</span><span class="pill">PostgreSQL 16</span><span class="pill">FastAPI</span><span class="pill">React</span></p>
+
+<h2>2. Entity-relationship diagram</h2>
+<p class="sub">Generated from the live schema. Arrows point from the referencing table (N) to the referenced table (1). Pink: the tamper-evidence tables; blue: the marks workflow.</p>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1480 788" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11.5">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#6366f1"/></marker></defs>
+<rect width="1480" height="788" fill="#ffffff"/>
+<line x1="562" y1="472" x2="622" y2="474" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="569" y="469" fill="#444" font-size="10">N</text>
+<text x="615" y="470" fill="#444" font-size="10">1</text>
+<line x1="1214" y1="465" x2="266" y2="298" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="1100" y="442" fill="#444" font-size="10">N</text>
+<text x="380" y="315" fill="#444" font-size="10">1</text>
+<line x1="1214" y1="489" x2="1154" y2="491" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="1207" y="486" fill="#444" font-size="10">N</text>
+<text x="1161" y="487" fill="#444" font-size="10">1</text>
+<line x1="1214" y1="238" x2="562" y2="116" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="1136" y="220" fill="#444" font-size="10">N</text>
+<text x="640" y="128" fill="#444" font-size="10">1</text>
+<line x1="622" y1="287" x2="562" y2="292" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="615" y="285" fill="#444" font-size="10">N</text>
+<text x="569" y="289" fill="#444" font-size="10">1</text>
+<line x1="326" y1="670" x2="266" y2="675" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="319" y="668" fill="#444" font-size="10">N</text>
+<text x="273" y="672" fill="#444" font-size="10">1</text>
+<line x1="148" y1="613" x2="148" y2="324" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="148" y="575" fill="#444" font-size="10">N</text>
+<text x="148" y="356" fill="#444" font-size="10">1</text>
+<line x1="219" y1="613" x2="694" y2="124" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="276" y="551" fill="#444" font-size="10">N</text>
+<text x="637" y="180" fill="#444" font-size="10">1</text>
+<line x1="918" y1="133" x2="266" y2="255" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="840" y="145" fill="#444" font-size="10">N</text>
+<text x="344" y="237" fill="#444" font-size="10">1</text>
+<line x1="1036" y1="192" x2="1036" y2="230" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="1036" y="194" fill="#444" font-size="10">N</text>
+<text x="1036" y="222" fill="#444" font-size="10">1</text>
+<line x1="918" y1="133" x2="266" y2="255" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="840" y="145" fill="#444" font-size="10">N</text>
+<text x="344" y="237" fill="#444" font-size="10">1</text>
+<line x1="326" y1="292" x2="266" y2="287" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="319" y="289" fill="#444" font-size="10">N</text>
+<text x="273" y="285" fill="#444" font-size="10">1</text>
+<line x1="352" y1="230" x2="197" y2="107" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="334" y="212" fill="#444" font-size="10">N</text>
+<text x="215" y="119" fill="#444" font-size="10">1</text>
+<line x1="224" y1="230" x2="340" y2="158" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="238" y="218" fill="#444" font-size="10">N</text>
+<text x="327" y="164" fill="#444" font-size="10">1</text>
+<line x1="1036" y1="413" x2="1036" y2="375" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="1036" y="405" fill="#444" font-size="10">N</text>
+<text x="1036" y="377" fill="#444" font-size="10">1</text>
+<line x1="918" y1="456" x2="562" y2="341" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="875" y="439" fill="#444" font-size="10">N</text>
+<text x="605" y="351" fill="#444" font-size="10">1</text>
+<line x1="1036" y1="413" x2="1036" y2="192" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="1036" y="383" fill="#444" font-size="10">N</text>
+<text x="1036" y="216" fill="#444" font-size="10">1</text>
+<line x1="918" y1="465" x2="266" y2="306" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="840" y="443" fill="#444" font-size="10">N</text>
+<text x="344" y="322" fill="#444" font-size="10">1</text>
+<line x1="941" y1="230" x2="802" y2="124" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="924" y="214" fill="#444" font-size="10">N</text>
+<text x="818" y="134" fill="#444" font-size="10">1</text>
+<line x1="918" y1="292" x2="858" y2="287" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="911" y="289" fill="#444" font-size="10">N</text>
+<text x="865" y="285" fill="#444" font-size="10">1</text>
+<line x1="631" y1="413" x2="562" y2="372" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="623" y="405" fill="#444" font-size="10">N</text>
+<text x="570" y="374" fill="#444" font-size="10">1</text>
+<line x1="708" y1="613" x2="476" y2="158" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="680" y="555" fill="#444" font-size="10">N</text>
+<text x="504" y="210" fill="#444" font-size="10">1</text>
+<line x1="622" y1="84" x2="562" y2="87" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="615" y="81" fill="#444" font-size="10">N</text>
+<text x="569" y="84" fill="#444" font-size="10">1</text>
+<line x1="326" y1="84" x2="266" y2="79" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="319" y="80" fill="#444" font-size="10">N</text>
+<text x="273" y="76" fill="#444" font-size="10">1</text>
+<rect x="326" y="413" width="236" height="111" rx="6" fill="#fdf2f8" stroke="#94a3b8"/>
+<rect x="326" y="413" width="236" height="26" rx="6" fill="#1e293b"/><rect x="326" y="425" width="236" height="14" fill="#1e293b"/>
+<text x="336" y="431" fill="#fff" font-weight="700" font-size="13">anchors</text>
+<text x="334" y="452" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="356" y="452" fill="#111" font-weight="700">anchor_id</text>
+<text x="554" y="452" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="334" y="469" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="356" y="469" fill="#111">batch_id</text>
+<text x="554" y="469" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="334" y="486" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="486" fill="#111">anchor_type</text>
+<text x="554" y="486" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="334" y="503" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="503" fill="#111">anchor_ref</text>
+<text x="554" y="503" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="334" y="520" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="520" fill="#111">anchored_at</text>
+<text x="554" y="520" fill="#64748b" text-anchor="end" font-size="10">timestamptz</text>
+<rect x="1214" y="413" width="236" height="145" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+<rect x="1214" y="413" width="236" height="26" rx="6" fill="#1e293b"/><rect x="1214" y="425" width="236" height="14" fill="#1e293b"/>
+<text x="1224" y="431" fill="#fff" font-weight="700" font-size="13">anomaly_alerts</text>
+<text x="1222" y="452" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="1244" y="452" fill="#111" font-weight="700">alert_id</text>
+<text x="1442" y="452" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="1222" y="469" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="1244" y="469" fill="#111">revision_id</text>
+<text x="1442" y="469" fill="#64748b" text-anchor="end" font-size="10">bigint</text>
+<text x="1222" y="486" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="1244" y="486" fill="#111">reviewed_by</text>
+<text x="1442" y="486" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="1222" y="503" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="1244" y="503" fill="#111">model_name</text>
+<text x="1442" y="503" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="1222" y="520" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="1244" y="520" fill="#111">score</text>
+<text x="1442" y="520" fill="#64748b" text-anchor="end" font-size="10">real</text>
+<text x="1222" y="537" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="1244" y="537" fill="#111">top_features</text>
+<text x="1442" y="537" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="1222" y="554" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="1244" y="554" fill="#111">…</text>
+<text x="1442" y="554" fill="#64748b" text-anchor="end" font-size="10"></text>
+<rect x="1214" y="230" width="236" height="60" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+<rect x="1214" y="230" width="236" height="26" rx="6" fill="#1e293b"/><rect x="1214" y="242" width="236" height="14" fill="#1e293b"/>
+<text x="1224" y="248" fill="#fff" font-weight="700" font-size="13">app_credentials</text>
+<text x="1222" y="269" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="1244" y="269" fill="#111" font-weight="700">user_id</text>
+<text x="1442" y="269" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="1222" y="286" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="1244" y="286" fill="#111">password_hash</text>
+<text x="1442" y="286" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<rect x="622" y="230" width="236" height="94" rx="6" fill="#eef2ff" stroke="#94a3b8"/>
+<rect x="622" y="230" width="236" height="26" rx="6" fill="#1e293b"/><rect x="622" y="242" width="236" height="14" fill="#1e293b"/>
+<text x="632" y="248" fill="#fff" font-weight="700" font-size="13">assessments</text>
+<text x="630" y="269" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="652" y="269" fill="#111" font-weight="700">course_id</text>
+<text x="850" y="269" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="630" y="286" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="652" y="286" fill="#111" font-weight="700">type</text>
+<text x="850" y="286" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="630" y="303" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="303" fill="#111">max_marks</text>
+<text x="850" y="303" fill="#64748b" text-anchor="end" font-size="10">numeric</text>
+<text x="630" y="320" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="320" fill="#111">freeze_at</text>
+<text x="850" y="320" fill="#64748b" text-anchor="end" font-size="10">timestamptz</text>
+<rect x="326" y="613" width="236" height="94" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+<rect x="326" y="613" width="236" height="26" rx="6" fill="#1e293b"/><rect x="326" y="625" width="236" height="14" fill="#1e293b"/>
+<text x="336" y="631" fill="#fff" font-weight="700" font-size="13">certificate_documents</text>
+<text x="334" y="652" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="356" y="652" fill="#111" font-weight="700">cert_id</text>
+<text x="554" y="652" fill="#64748b" text-anchor="end" font-size="10">uuid</text>
+<text x="334" y="669" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="669" fill="#111">mime</text>
+<text x="554" y="669" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="334" y="686" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="686" fill="#111">doc</text>
+<text x="554" y="686" fill="#64748b" text-anchor="end" font-size="10">bytea</text>
+<text x="334" y="703" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="703" fill="#111">created_at</text>
+<text x="554" y="703" fill="#64748b" text-anchor="end" font-size="10">timestamptz</text>
+<rect x="30" y="613" width="236" height="145" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+<rect x="30" y="613" width="236" height="26" rx="6" fill="#1e293b"/><rect x="30" y="625" width="236" height="14" fill="#1e293b"/>
+<text x="40" y="631" fill="#fff" font-weight="700" font-size="13">certificates</text>
+<text x="38" y="652" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="60" y="652" fill="#111" font-weight="700">cert_id</text>
+<text x="258" y="652" fill="#64748b" text-anchor="end" font-size="10">uuid</text>
+<text x="38" y="669" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="60" y="669" fill="#111">student_id</text>
+<text x="258" y="669" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="38" y="686" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="60" y="686" fill="#111">issued_by</text>
+<text x="258" y="686" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="38" y="703" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="60" y="703" fill="#111">cert_type</text>
+<text x="258" y="703" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="38" y="720" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="60" y="720" fill="#111">doc_hash</text>
+<text x="258" y="720" fill="#64748b" text-anchor="end" font-size="10">char</text>
+<text x="38" y="737" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="60" y="737" fill="#111">salt</text>
+<text x="258" y="737" fill="#64748b" text-anchor="end" font-size="10">char</text>
+<text x="38" y="754" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="60" y="754" fill="#111">…</text>
+<text x="258" y="754" fill="#64748b" text-anchor="end" font-size="10"></text>
+<rect x="918" y="30" width="236" height="162" rx="6" fill="#eef2ff" stroke="#94a3b8"/>
+<rect x="918" y="30" width="236" height="26" rx="6" fill="#1e293b"/><rect x="918" y="42" width="236" height="14" fill="#1e293b"/>
+<text x="928" y="48" fill="#fff" font-weight="700" font-size="13">change_requests</text>
+<text x="926" y="69" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="948" y="69" fill="#111" font-weight="700">request_id</text>
+<text x="1146" y="69" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="86" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="948" y="86" fill="#111">mark_id</text>
+<text x="1146" y="86" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="103" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="948" y="103" fill="#111">requested_by</text>
+<text x="1146" y="103" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="120" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="948" y="120" fill="#111">approved_by</text>
+<text x="1146" y="120" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="137" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="137" fill="#111">proposed_value</text>
+<text x="1146" y="137" fill="#64748b" text-anchor="end" font-size="10">numeric</text>
+<text x="926" y="154" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="154" fill="#111">reason</text>
+<text x="1146" y="154" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="926" y="171" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="171" fill="#111">status</text>
+<text x="1146" y="171" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="926" y="188" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="188" fill="#111">…</text>
+<text x="1146" y="188" fill="#64748b" text-anchor="end" font-size="10"></text>
+<rect x="326" y="230" width="236" height="145" rx="6" fill="#eef2ff" stroke="#94a3b8"/>
+<rect x="326" y="230" width="236" height="26" rx="6" fill="#1e293b"/><rect x="326" y="242" width="236" height="14" fill="#1e293b"/>
+<text x="336" y="248" fill="#fff" font-weight="700" font-size="13">courses</text>
+<text x="334" y="269" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="356" y="269" fill="#111" font-weight="700">course_id</text>
+<text x="554" y="269" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="334" y="286" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="356" y="286" fill="#111">faculty_id</text>
+<text x="554" y="286" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="334" y="303" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="356" y="303" fill="#111">institution_id</text>
+<text x="554" y="303" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="334" y="320" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="320" fill="#111">course_code</text>
+<text x="554" y="320" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="334" y="337" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="337" fill="#111">title</text>
+<text x="554" y="337" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="334" y="354" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="354" fill="#111">credits</text>
+<text x="554" y="354" fill="#64748b" text-anchor="end" font-size="10">smallint</text>
+<text x="334" y="371" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="371" fill="#111">…</text>
+<text x="554" y="371" fill="#64748b" text-anchor="end" font-size="10"></text>
+<rect x="30" y="230" width="236" height="94" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+<rect x="30" y="230" width="236" height="26" rx="6" fill="#1e293b"/><rect x="30" y="242" width="236" height="14" fill="#1e293b"/>
+<text x="40" y="248" fill="#fff" font-weight="700" font-size="13">faculty</text>
+<text x="38" y="269" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="60" y="269" fill="#111" font-weight="700">user_id</text>
+<text x="258" y="269" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="38" y="286" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="60" y="286" fill="#111">employee_id</text>
+<text x="258" y="286" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="38" y="303" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="60" y="303" fill="#111">department</text>
+<text x="258" y="303" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="38" y="320" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="60" y="320" fill="#111">can_approve</text>
+<text x="258" y="320" fill="#64748b" text-anchor="end" font-size="10">boolean</text>
+<rect x="30" y="30" width="236" height="77" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+<rect x="30" y="30" width="236" height="26" rx="6" fill="#1e293b"/><rect x="30" y="42" width="236" height="14" fill="#1e293b"/>
+<text x="40" y="48" fill="#fff" font-weight="700" font-size="13">institutions</text>
+<text x="38" y="69" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="60" y="69" fill="#111" font-weight="700">institution_id</text>
+<text x="258" y="69" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="38" y="86" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="60" y="86" fill="#111">slug</text>
+<text x="258" y="86" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="38" y="103" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="60" y="103" fill="#111">name</text>
+<text x="258" y="103" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<rect x="918" y="613" width="236" height="111" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+<rect x="918" y="613" width="236" height="26" rx="6" fill="#1e293b"/><rect x="918" y="625" width="236" height="14" fill="#1e293b"/>
+<text x="928" y="631" fill="#fff" font-weight="700" font-size="13">integrity_runs</text>
+<text x="926" y="652" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="948" y="652" fill="#111" font-weight="700">run_id</text>
+<text x="1146" y="652" fill="#64748b" text-anchor="end" font-size="10">bigint</text>
+<text x="926" y="669" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="669" fill="#111">kind</text>
+<text x="1146" y="669" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="926" y="686" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="686" fill="#111">ok</text>
+<text x="1146" y="686" fill="#64748b" text-anchor="end" font-size="10">boolean</text>
+<text x="926" y="703" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="703" fill="#111">detail</text>
+<text x="1146" y="703" fill="#64748b" text-anchor="end" font-size="10">jsonb</text>
+<text x="926" y="720" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="720" fill="#111">…</text>
+<text x="1146" y="720" fill="#64748b" text-anchor="end" font-size="10"></text>
+<rect x="1214" y="613" width="236" height="111" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+<rect x="1214" y="613" width="236" height="26" rx="6" fill="#1e293b"/><rect x="1214" y="625" width="236" height="14" fill="#1e293b"/>
+<text x="1224" y="631" fill="#fff" font-weight="700" font-size="13">login_attempts</text>
+<text x="1222" y="652" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="1244" y="652" fill="#111" font-weight="700">attempt_id</text>
+<text x="1442" y="652" fill="#64748b" text-anchor="end" font-size="10">bigint</text>
+<text x="1222" y="669" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="1244" y="669" fill="#111">email</text>
+<text x="1442" y="669" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="1222" y="686" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="1244" y="686" fill="#111">ip</text>
+<text x="1442" y="686" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="1222" y="703" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="1244" y="703" fill="#111">ok</text>
+<text x="1442" y="703" fill="#64748b" text-anchor="end" font-size="10">boolean</text>
+<text x="1222" y="720" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="1244" y="720" fill="#111">…</text>
+<text x="1442" y="720" fill="#64748b" text-anchor="end" font-size="10"></text>
+<rect x="918" y="413" width="236" height="162" rx="6" fill="#fdf2f8" stroke="#94a3b8"/>
+<rect x="918" y="413" width="236" height="26" rx="6" fill="#1e293b"/><rect x="918" y="425" width="236" height="14" fill="#1e293b"/>
+<text x="928" y="431" fill="#fff" font-weight="700" font-size="13">mark_revisions</text>
+<text x="926" y="452" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="948" y="452" fill="#111" font-weight="700">revision_id</text>
+<text x="1146" y="452" fill="#64748b" text-anchor="end" font-size="10">bigint</text>
+<text x="926" y="469" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="948" y="469" fill="#111">mark_id</text>
+<text x="1146" y="469" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="486" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="948" y="486" fill="#111">course_id</text>
+<text x="1146" y="486" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="503" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="948" y="503" fill="#111">request_id</text>
+<text x="1146" y="503" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="520" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="948" y="520" fill="#111">prev_revision_id</text>
+<text x="1146" y="520" fill="#64748b" text-anchor="end" font-size="10">bigint</text>
+<text x="926" y="537" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="948" y="537" fill="#111">changed_by</text>
+<text x="1146" y="537" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="554" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="554" fill="#111">seq</text>
+<text x="1146" y="554" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="571" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="571" fill="#111">…</text>
+<text x="1146" y="571" fill="#64748b" text-anchor="end" font-size="10"></text>
+<rect x="918" y="230" width="236" height="145" rx="6" fill="#eef2ff" stroke="#94a3b8"/>
+<rect x="918" y="230" width="236" height="26" rx="6" fill="#1e293b"/><rect x="918" y="242" width="236" height="14" fill="#1e293b"/>
+<text x="928" y="248" fill="#fff" font-weight="700" font-size="13">marks</text>
+<text x="926" y="269" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="948" y="269" fill="#111" font-weight="700">mark_id</text>
+<text x="1146" y="269" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="286" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="948" y="286" fill="#111">student_id</text>
+<text x="1146" y="286" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="303" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="948" y="303" fill="#111">course_id</text>
+<text x="1146" y="303" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="320" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="948" y="320" fill="#111">assessment_type</text>
+<text x="1146" y="320" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="926" y="337" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="337" fill="#111">current_value</text>
+<text x="1146" y="337" fill="#64748b" text-anchor="end" font-size="10">numeric</text>
+<text x="926" y="354" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="354" fill="#111">version</text>
+<text x="1146" y="354" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="371" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="371" fill="#111">updated_at</text>
+<text x="1146" y="371" fill="#64748b" text-anchor="end" font-size="10">timestamptz</text>
+<rect x="622" y="413" width="236" height="128" rx="6" fill="#fdf2f8" stroke="#94a3b8"/>
+<rect x="622" y="413" width="236" height="26" rx="6" fill="#1e293b"/><rect x="622" y="425" width="236" height="14" fill="#1e293b"/>
+<text x="632" y="431" fill="#fff" font-weight="700" font-size="13">merkle_batches</text>
+<text x="630" y="452" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="652" y="452" fill="#111" font-weight="700">batch_id</text>
+<text x="850" y="452" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="630" y="469" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="652" y="469" fill="#111">course_id</text>
+<text x="850" y="469" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="630" y="486" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="486" fill="#111">seq_from</text>
+<text x="850" y="486" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="630" y="503" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="503" fill="#111">seq_to</text>
+<text x="850" y="503" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="630" y="520" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="520" fill="#111">merkle_root</text>
+<text x="850" y="520" fill="#64748b" text-anchor="end" font-size="10">char</text>
+<text x="630" y="537" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="537" fill="#111">…</text>
+<text x="850" y="537" fill="#64748b" text-anchor="end" font-size="10"></text>
+<rect x="622" y="613" width="236" height="128" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+<rect x="622" y="613" width="236" height="26" rx="6" fill="#1e293b"/><rect x="622" y="625" width="236" height="14" fill="#1e293b"/>
+<text x="632" y="631" fill="#fff" font-weight="700" font-size="13">notifications</text>
+<text x="630" y="652" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="652" y="652" fill="#111" font-weight="700">notification_id</text>
+<text x="850" y="652" fill="#64748b" text-anchor="end" font-size="10">bigint</text>
+<text x="630" y="669" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="652" y="669" fill="#111">user_id</text>
+<text x="850" y="669" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="630" y="686" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="686" fill="#111">kind</text>
+<text x="850" y="686" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="630" y="703" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="703" fill="#111">message</text>
+<text x="850" y="703" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="630" y="720" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="720" fill="#111">link</text>
+<text x="850" y="720" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="630" y="737" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="737" fill="#111">…</text>
+<text x="850" y="737" fill="#64748b" text-anchor="end" font-size="10"></text>
+<rect x="622" y="30" width="236" height="94" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+<rect x="622" y="30" width="236" height="26" rx="6" fill="#1e293b"/><rect x="622" y="42" width="236" height="14" fill="#1e293b"/>
+<text x="632" y="48" fill="#fff" font-weight="700" font-size="13">students</text>
+<text x="630" y="69" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="652" y="69" fill="#111" font-weight="700">user_id</text>
+<text x="850" y="69" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="630" y="86" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="86" fill="#111">usn</text>
+<text x="850" y="86" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="630" y="103" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="103" fill="#111">branch</text>
+<text x="850" y="103" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="630" y="120" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="120" fill="#111">semester</text>
+<text x="850" y="120" fill="#64748b" text-anchor="end" font-size="10">smallint</text>
+<rect x="326" y="30" width="236" height="128" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+<rect x="326" y="30" width="236" height="26" rx="6" fill="#1e293b"/><rect x="326" y="42" width="236" height="14" fill="#1e293b"/>
+<text x="336" y="48" fill="#fff" font-weight="700" font-size="13">users</text>
+<text x="334" y="69" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="356" y="69" fill="#111" font-weight="700">user_id</text>
+<text x="554" y="69" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="334" y="86" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="356" y="86" fill="#111">institution_id</text>
+<text x="554" y="86" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="334" y="103" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="103" fill="#111">name</text>
+<text x="554" y="103" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="334" y="120" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="120" fill="#111">email</text>
+<text x="554" y="120" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="334" y="137" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="137" fill="#111">role</text>
+<text x="554" y="137" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="334" y="154" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="154" fill="#111">…</text>
+<text x="554" y="154" fill="#64748b" text-anchor="end" font-size="10"></text>
+</svg>
+
+<h2 class="pb">3. Relational schema</h2>
+<ul class="rel"><li><b>anchors</b>(<u>anchor_id</u>, batch_id, anchor_type, anchor_ref, anchored_at)</li><li><b>anomaly_alerts</b>(<u>alert_id</u>, revision_id, reviewed_by, model_name, score, top_features, status, created_at, reviewed_at)</li><li><b>app_credentials</b>(<u>user_id</u>, password_hash)</li><li><b>assessments</b>(<u>course_id</u>, <u>type</u>, max_marks, freeze_at)</li><li><b>certificate_documents</b>(<u>cert_id</u>, mime, doc, created_at)</li><li><b>certificates</b>(<u>cert_id</u>, student_id, issued_by, cert_type, doc_hash, salt, status, issued_at, revoked_at)</li><li><b>change_requests</b>(<u>request_id</u>, mark_id, requested_by, approved_by, proposed_value, reason, status, requested_at, decided_at)</li><li><b>courses</b>(<u>course_id</u>, course_code, title, credits, semester, faculty_id, institution_id)</li><li><b>faculty</b>(<u>user_id</u>, employee_id, department, can_approve)</li><li><b>institutions</b>(<u>institution_id</u>, slug, name)</li><li><b>integrity_runs</b>(<u>run_id</u>, kind, ok, detail, started_at)</li><li><b>login_attempts</b>(<u>attempt_id</u>, email, ip, ok, at)</li><li><b>mark_revisions</b>(<u>revision_id</u>, mark_id, course_id, seq, request_id, prev_revision_id, old_value, new_value, changed_by, reason, changed_at, prev_hash, row_hash)</li><li><b>marks</b>(<u>mark_id</u>, student_id, course_id, assessment_type, current_value, version, updated_at)</li><li><b>merkle_batches</b>(<u>batch_id</u>, course_id, seq_from, seq_to, merkle_root, created_at)</li><li><b>notifications</b>(<u>notification_id</u>, user_id, kind, message, link, created_at, read_at)</li><li><b>students</b>(<u>user_id</u>, usn, branch, semester)</li><li><b>users</b>(<u>user_id</u>, name, email, role, created_at, institution_id)</li></ul>
+<p class="sub">Underlined = primary key. The full data dictionary (types, defaults, constraints) is in <code>docs/data_dictionary.md</code>.</p>
+
+<h2>4. Normalisation</h2>
+<table><tr><th>Relation</th><th>Normal form</th><th>Reasoning</th></tr><tr><td>users</td><td>BCNF</td><td>Every attribute depends only on user_id; email is a second candidate key. The role selects a disjoint specialisation (students or faculty), enforced by triggers.</td></tr><tr><td>students, faculty</td><td>BCNF</td><td>Specialisations of users keyed by user_id; usn and employee_id are candidate keys.</td></tr><tr><td>courses</td><td>BCNF</td><td>Candidate keys course_id and (course_code, semester); faculty_id is a plain foreign key.</td></tr><tr><td>assessments</td><td>BCNF</td><td>Weak entity keyed by (course_id, type): max_marks and freeze_at depend on the whole key.</td></tr><tr><td>marks</td><td>BCNF</td><td>Associative entity; candidate keys mark_id and (student_id, course_id, assessment_type); (course_id, assessment_type) references assessments.</td></tr><tr><td>change_requests</td><td>3NF</td><td>All attributes depend on request_id. approved_by and decided_at are filled together (check constraint).</td></tr><tr><td>mark_revisions</td><td>2NF-3NF with one deliberate redundancy</td><td>course_id is determined by mark_id (marks.course_id), which makes it a transitive dependency. It is kept on purpose as the chain key so each course has its own chain and lock; a trigger rejects any row whose course_id differs from the mark&#x27;s.</td></tr><tr><td>merkle_batches, anchors</td><td>BCNF</td><td>Keyed by batch_id / anchor_id; (course_id, seq_from) is a candidate key of a batch.</td></tr><tr><td>certificates, certificate_documents</td><td>BCNF</td><td>Only sha256(salt || content digest) is stored, never the content; the document is write-once and keyed by cert_id.</td></tr><tr><td>notifications, integrity_runs, login_attempts, institutions</td><td>BCNF</td><td>Operational tables, each depending only on its surrogate key.</td></tr><tr><td>v_course_result, v_student_sgpa</td><td>(views)</td><td>SGPA is derived by a view and never stored, so it can never disagree with the marks (no update anomaly).</td></tr></table>
+
+<h2>5. How the database enforces the rules</h2>
+<table><tr><th>Rule</th><th>Mechanism</th></tr><tr><td>Revisions are append-only</td><td>BEFORE UPDATE/DELETE/TRUNCATE trigger raises on mark_revisions, merkle_batches, anchors, certificate_documents</td></tr><tr><td>seq, prev_hash, row_hash come from the database</td><td>BEFORE INSERT trigger on mark_revisions; a row lock on the course serialises that course&#x27;s chain only</td></tr><tr><td>Marks change only through apply_change()</td><td>marks_guard trigger checks a transaction-local flag that only the SECURITY DEFINER function sets</td></tr><tr><td>Only the course faculty writes marks</td><td>Checked in the chain trigger against courses.faculty_id</td></tr><tr><td>Frozen assessments need an approved request</td><td>Chain trigger: now() &gt;= freeze_at requires an approved change_request that matches the revision</td></tr><tr><td>Maker is not the checker</td><td>CHECK approved_by &lt;&gt; requested_by plus can_approve test in the update trigger</td></tr><tr><td>Each role sees only its own data</td><td>Row-level security policies on users, students, marks, revisions, requests, certificates, alerts, notifications, documents</td></tr><tr><td>Each institution sees only its own data</td><td>RESTRICTIVE policies (AND-ed with the role policies) on all 12 data tables, using owner-run lookup functions so policies never recurse</td></tr><tr><td>The app connects with least privilege</td><td>Role veritas_app: SELECT on tables it needs, EXECUTE on the write functions only; verify_*, seal_batch, record_anchor are owner-only</td></tr><tr><td>Certificates never store content</td><td>Only sha256(salt || sha256(content)) is stored; verification returns valid / revoked / unknown</td></tr><tr><td>Users are told what concerns them</td><td>AFTER triggers write notifications for requests, decisions, mark changes, alerts and certificates</td></tr></table>
+
+<h2 class="pb">6. Tamper detection and threat model</h2>
+<p>Leaf = SHA-256('L' + row_hash); node = SHA-256('N' + left + right); the SQL <code>merkle_root()</code> and the Python <code>merkle.py</code> are cross-checked for equality. Row hashes use a canonical JSON array so free text cannot create ambiguity.</p>
+<table><tr><th>Attack</th><th>What catches it</th><th>Test</th></tr><tr><td>Edit a mark&#x27;s value in mark_revisions</td><td>verify_chain: row_hash no longer matches</td><td>T100, P08</td></tr><tr><td>Edit a row and re-hash only that row</td><td>Next row&#x27;s prev_hash no longer matches</td><td>T101</td></tr><tr><td>Delete a middle revision</td><td>Sequence gap</td><td>T102</td></tr><tr><td>Re-hash the whole chain after changing history</td><td>old_value continuity check; and the external witness root</td><td>T104, P08</td></tr><tr><td>Edit marks.current_value directly</td><td>verify_marks_current compares with the ledger</td><td>T105</td></tr><tr><td>Forge a stored Merkle root</td><td>verify_batches recomputes it</td><td>T106</td></tr><tr><td>Truncate the tail of the chain</td><td>Marks cross-check and batch check; witness reports the missing batch</td><td>T108, T109, P09</td></tr><tr><td>Rewrite database AND witness together</td><td>Not detectable: the witness must live outside the DBA&#x27;s control (git remote)</td><td>P11 (documented negative result)</td></tr><tr><td>Brute-force a login</td><td>Account locks after 5 failures for 15 minutes</td><td>API A03</td></tr><tr><td>Cross-site request forgery</td><td>State-changing calls need the per-session CSRF token</td><td>API A04</td></tr><tr><td>Read another student&#x27;s marks / documents</td><td>Row-level security returns nothing</td><td>T-series, AX06, AX11, API C03</td></tr><tr><td>Read or alter another institution&#x27;s data</td><td>Restrictive RLS policies on every table; mixed-institution rows are refused by triggers</td><td>AX18-AX23, API I04-I10</td></tr><tr><td>Verifier races an anchor and raises a false alarm</td><td>One lock serialises witness writes and checks</td><td>API W05</td></tr></table>
+
+<h2>7. Concurrency and performance</h2>
+<p>A single global chain would serialise every writer. Veritas chains per course, so writers on different courses never wait for each other (concurrency tests C1-C3 prove same-course writers queue and other-course writers do not).</p>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 330" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12"><rect width="640" height="330" fill="#fff"/>
+<line x1="60" y1="280" x2="630" y2="280" stroke="#e2e8f0"/><text x="54" y="284" text-anchor="end" fill="#64748b">0</text>
+<line x1="60" y1="218" x2="630" y2="218" stroke="#e2e8f0"/><text x="54" y="222" text-anchor="end" fill="#64748b">1187</text>
+<line x1="60" y1="155" x2="630" y2="155" stroke="#e2e8f0"/><text x="54" y="159" text-anchor="end" fill="#64748b">2373</text>
+<line x1="60" y1="92" x2="630" y2="92" stroke="#e2e8f0"/><text x="54" y="96" text-anchor="end" fill="#64748b">3560</text>
+<line x1="60" y1="30" x2="630" y2="30" stroke="#e2e8f0"/><text x="54" y="34" text-anchor="end" fill="#64748b">4746</text>
+<rect x="74" y="263" width="33" height="17" fill="#94a3b8" rx="2"/>
+<rect x="111" y="264" width="33" height="16" fill="#6366f1" rx="2"/>
+<rect x="149" y="264" width="33" height="16" fill="#f43f5e" rx="2"/>
+<text x="130" y="298" text-anchor="middle" fill="#111">1 clients</text>
+<rect x="214" y="212" width="33" height="68" fill="#94a3b8" rx="2"/>
+<rect x="251" y="227" width="33" height="53" fill="#6366f1" rx="2"/>
+<rect x="289" y="263" width="33" height="17" fill="#f43f5e" rx="2"/>
+<text x="270" y="298" text-anchor="middle" fill="#111">4 clients</text>
+<rect x="354" y="157" width="33" height="123" fill="#94a3b8" rx="2"/>
+<rect x="391" y="196" width="33" height="84" fill="#6366f1" rx="2"/>
+<rect x="429" y="263" width="33" height="17" fill="#f43f5e" rx="2"/>
+<text x="410" y="298" text-anchor="middle" fill="#111">8 clients</text>
+<rect x="494" y="53" width="33" height="227" fill="#94a3b8" rx="2"/>
+<rect x="531" y="172" width="33" height="108" fill="#6366f1" rx="2"/>
+<rect x="569" y="264" width="33" height="16" fill="#f43f5e" rx="2"/>
+<text x="550" y="298" text-anchor="middle" fill="#111">16 clients</text>
+<rect x="60" y="308" width="12" height="12" fill="#94a3b8"/><text x="78" y="318" fill="#111">no chain</text>
+<rect x="250" y="308" width="12" height="12" fill="#6366f1"/><text x="268" y="318" fill="#111">chain per course (Veritas)</text>
+<rect x="440" y="308" width="12" height="12" fill="#f43f5e"/><text x="458" y="318" fill="#111">one global chain</text>
+<text x="14" y="18" fill="#111" font-weight="700">Throughput (transactions / s), 10 courses, 2 ms simulated work</text></svg>
+<p>At 16 clients a per-course chain sustains <b>2057 tps</b> against <b>301 tps</b> for one global chain, <b>6.8x</b> more.</p>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 260" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12"><rect width="640" height="260" fill="#fff"/>
+<line x1="60" y1="216" x2="620" y2="216" stroke="#94a3b8"/><line x1="60" y1="30" x2="60" y2="216" stroke="#94a3b8"/>
+<polyline fill="none" stroke="#6366f1" stroke-width="2.5" points="88,201 198,162 610,54"/>
+<circle cx="88" cy="201" r="4" fill="#6366f1"/><text x="88" y="191" text-anchor="middle" fill="#111">20 ms</text>
+<text x="88" y="234" text-anchor="middle" fill="#111">1,000 rows</text>
+<circle cx="198" cy="162" r="4" fill="#6366f1"/><text x="198" y="152" text-anchor="middle" fill="#111">71 ms</text>
+<text x="198" y="234" text-anchor="middle" fill="#111">5,000 rows</text>
+<circle cx="610" cy="54" r="4" fill="#6366f1"/><text x="610" y="44" text-anchor="middle" fill="#111">214 ms</text>
+<text x="610" y="234" text-anchor="middle" fill="#111">20,000 rows</text>
+<text x="14" y="18" fill="#111" font-weight="700">verify_chain time grows roughly linearly with chain length</text></svg>
+<p class="sub">An index on (course_id, seq) turns the "latest revision of a course" lookup from a 6.4 ms sequential scan into a 0.06 ms index scan.</p>
+
+<h2 class="pb">8. Application features</h2>
+<table><tr><th>Area</th><th>What it does</th></tr><tr><td>Marks workflow</td><td>Entry, optimistic version check, freeze, change request, checker approval, apply with request id; CSV bulk import and export</td></tr><tr><td>Integrity</td><td>Seal Merkle batches, anchor roots to a git-backed witness (push to a remote for real separation), inclusion proofs, scheduled verification, alerts to admins by notification, webhook and e-mail</td></tr><tr><td>Anomaly detection</td><td>IsolationForest plus rules over revision features; alerts explain why they fired and are triaged by a checker; model version is recorded</td></tr><tr><td>Certificates</td><td>Issue custom certificates or ledger-built transcripts; PDF with scan-to-verify QR stored write-once; public verifier works from the QR alone</td></tr><tr><td>Selective disclosure</td><td>A student exports a proof of one revision (fields, Merkle path, witness record); verify_disclosure.py checks it offline without revealing other marks</td></tr><tr><td>Security</td><td>Login throttling, per-session CSRF token, random session secret, optional HTTPS-only cookies; Caddy gives automatic TLS in the Docker stack</td></tr><tr><td>Operations</td><td>backup_restore.py backs up only a verified ledger and proves each restore; Docker Compose stack; GitHub Actions CI</td></tr><tr><td>Multi-institution</td><td>Every user and course belongs to an institution. Restrictive row-level-security policies isolate every table per institution; triggers refuse a course, faculty member or student from different institutions; admin dashboards, directory, sealing, anchoring, transcripts, alerts and notifications are scoped; the scheduler verifies each institution separately</td></tr></table>
+
+<h2>9. Test summary</h2>
+<table><tr><th>Suite</th><th>Tests</th></tr><tr><td>Ledger suite (SQL)</td><td>84</td></tr><tr><td>Application-layer suite (SQL, incl. multi-institution isolation)</td><td>25</td></tr><tr><td>Python cross-checks and attacks</td><td>11</td></tr><tr><td>Concurrency</td><td>3</td></tr><tr><td>API end-to-end (incl. isolation and race checks)</td><td>32</td></tr><tr><td>Backup / restore</td><td>6</td></tr><tr><td>Browser end-to-end (Chrome)</td><td>12</td></tr><tr><td><b>Total</b></td><td><b>173</b></td></tr></table>
+
+<h2>10. Limits and future work</h2>
+<ul><li>The witness is only outside the administrator's reach if it is pushed to a remote they do not control; on one machine it is tamper-evident, not tamper-proof. The immudb backend is written but untested.</li>
+<li>Revisions made after the last anchor are not yet pinned; the scheduler shortens that window (default 15 minutes).</li>
+<li>Single sign-on (OIDC) is not implemented; accounts use bcrypt passwords with throttling.</li>
+<li>The Docker stack has not been run in the development environment (no Docker daemon).</li>
+<li>The witness (one file or git repo) is shared by all institutions; records carry the institution slug and each admin only verifies their own, but the file itself is common.</li></ul>
+</body></html>

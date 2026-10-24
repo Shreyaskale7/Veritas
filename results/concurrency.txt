@@ -1,0 +1,6 @@
+C1  PASS  Writer on the SAME course waits for an open transaction on that course's chain (A holds 3.0 s, B started 0.8 s later)
+        -> B finished after 2.25 s (A: 3.05 s)
+C2  PASS  Writer on a DIFFERENT course is not blocked by it
+        -> C finished after 0.04 s while A was still open
+C3  PASS  After the race both chains are contiguous and verify (no duplicated or skipped seq)
+        -> 1:true,2:true; commit order ['1:1:1', '2:1:10', '1:2:2']

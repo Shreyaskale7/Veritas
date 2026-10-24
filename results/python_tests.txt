@@ -1,0 +1,14 @@
+ID    RESULT DESCRIPTION
+P01   PASS   Python recomputes row_hash for all 15 revisions identically to the SQL trigger (includes a reason containing | " \ and non-ASCII)
+P02   PASS   Python genesis hash equals genesis_hash(course) for every course
+P03   PASS   SQL merkle_root() equals the Python implementation for 1-9, 16, 17 and 33 leaves
+P04   PASS   Inclusion proofs: all 15 leaves of 3 batches verify against the stored root (longest path 4); a forged leaf or another leaf's hash is rejected
+P05   PASS   Anchoring writes each batch root to the witness once (second run anchors nothing) and records the reference in ANCHORS
+P06   PASS   Clean database agrees with the witness (verify returns no problems)
+P07   PASS   A single revision can be proven against the witnessed root alone (verifier does not need the database)
+P08   PASS   Smart attacker (edits a mark, re-hashes the chain, fixes marks and Merkle roots): every database-internal check passes, but the external witness exposes it
+P09   PASS   Truncation attack (last revisions, their marks, their batch and anchor row all removed): internal checks pass, witness reports missing batch
+P10   PASS   Editing one line of the witness file breaks its own hash links
+P11   PASS   NEGATIVE RESULT (documents the trust assumption): if the attacker can also rewrite the witness, nothing is detected. The witness must live outside the DBA's control
+
+11 passed, 0 failed, 11 total

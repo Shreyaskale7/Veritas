@@ -1,0 +1,11 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+psycopg[binary,pool]==3.2.6
+scikit-learn==1.6.1
+numpy==2.2.4
+python-multipart==0.0.20
+itsdangerous==2.2.0
+reportlab==5.0.0
+qrcode[pil]==8.2
+pillow==12.2.0
+httpx==0.28.1

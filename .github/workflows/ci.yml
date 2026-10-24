@@ -1,0 +1,47 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGCLIENTENCODING: UTF8
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm, cache-dependency-path: web/frontend/package-lock.json }
+      - name: Install
+        run: |
+          sudo apt-get update && sudo apt-get install -y postgresql-client git
+          pip install -r web/backend/requirements.txt playwright
+          cd web/frontend && npm ci
+      - name: SQL suites (84 ledger tests + 25 application-layer tests)
+        run: bash run_tests.sh
+      - name: Python cross-checks and concurrency
+        run: |
+          python python_tests.py
+          python concurrency_test.py
+      - name: API tests
+        run: python api_tests.py
+      - name: Backup / restore proof
+        run: python ops/test_backup_restore.py
+      - name: Frontend build
+        run: cd web/frontend && npm run build
+      - name: Browser end-to-end
+        run: python e2e_test.py

@@ -1,0 +1,10 @@
+.pg
+.git
+backups
+brag-output
+demo
+web/frontend/node_modules
+web/frontend/dist*
+**/__pycache__
+witness*
+.env

@@ -1,0 +1,84 @@
+T01	Seed data loaded: 7 users, 3 courses, 27 marks rows	PASS
+T02	A faculty user cannot also be inserted as a student (disjoint specialization)	PASS
+T03	Duplicate USN is rejected	PASS
+T04	Role of a specialised user cannot be changed	PASS
+T05	Assessment with non-positive max_marks is rejected	PASS
+T10	First revision of a course: seq 1, no predecessor, genesis prev_hash, old_value NULL	PASS
+T11	Course 1 has contiguous seq 1..7 and each prev_hash equals the previous row_hash	PASS
+T12	verify_chain accepts the untouched course-1 chain (7 rows)	PASS
+T13	A pre-freeze correction records old_value = the previous value (38 -> 40)	PASS
+T14	Chains are per course: course 2 starts at seq 1 with its own genesis hash and verifies	PASS
+T15	Value above max_marks is rejected	PASS
+T16	Negative value is rejected	PASS
+T17	Writing the same value again is rejected as a no-op	PASS
+T18	Failed writes leave no partial state: revision count and mark value unchanged	PASS
+T19	Faculty who does not teach the course cannot write its marks	PASS
+T20	Acting user must equal the signed-in user (cannot write as someone else)	PASS
+T21	Anonymous session cannot write marks	PASS
+T30	UPDATE on mark_revisions is blocked (even for the owner)	PASS
+T31	DELETE on mark_revisions is blocked	PASS
+T32	TRUNCATE on mark_revisions is blocked: plain form by the foreign keys, CASCADE form by the guard trigger	PASS
+T33	Application role has no UPDATE/DELETE/INSERT privilege on mark_revisions	PASS
+T34	Direct UPDATE of marks.current_value is blocked for the owner (must use apply_change)	PASS
+T35	Application role cannot UPDATE marks directly	PASS
+T36	DELETE on marks is blocked	PASS
+T40	After the freeze deadline a direct edit is rejected	PASS
+T41	Only the course faculty can raise a change request	PASS
+T42	Request above max_marks is rejected	PASS
+T43	Request without a meaningful reason is rejected (min 5 characters)	PASS
+T44	Valid request is created as pending	PASS
+T45	A pending (undecided) request does not authorise a revision	PASS
+T46	Faculty without can_approve cannot decide a request	PASS
+T47	The requester cannot approve their own request	PASS
+T48	HOD approval recorded: approved_by = 4 and decided_at set	PASS
+T49	An approved request authorises only the exact proposed value (43 <> 42 rejected)	PASS
+T50	Approved request applies: revision links the request, mark updated, request becomes applied	PASS
+T51	A used request cannot be reused	PASS
+T52	Rejected request is stored with the deciding checker	PASS
+T53	A rejected request cannot be applied	PASS
+T54	A decided request cannot be decided again	PASS
+T55	Illegal status transitions are blocked (rejected -> approved, approved -> applied outside apply_change)	PASS
+T56	Even a checker cannot approve his own request (checker_differs constraint)	PASS
+T57	Optimistic versioning: stale expected_version raises a serialization failure (40001)	PASS
+T58	Optimistic versioning: correct expected_version succeeds	PASS
+T60	Student sees only own marks rows (9 of 27)	PASS
+T61	Student sees no other student's marks	PASS
+T62	Faculty sees only marks of the courses taught (course 1 -> 9 rows)	PASS
+T63	Admin sees all marks (27)	PASS
+T64	Student sees own revisions (with hashes) and none of other students'	PASS
+T65	Change requests: student 0, non-checker faculty 0, requester 2 (own), HOD sees all	PASS
+T66	Users e-mail column is not readable by the application role	PASS
+T67	A student sees only their own users row	PASS
+T68	Students cannot read anomaly alerts	PASS
+T69	Application role cannot write to marks or users directly	PASS
+T70	Certificate issued by faculty with a random 128-bit salt	PASS
+T71	Public check with the right salt and digest returns valid (anonymous session)	PASS
+T72	Wrong salt, wrong digest or unknown id all return unknown	PASS
+T73	Stored doc_hash is salted: it differs from the plain SHA-256 of the content	PASS
+T74	The public check returns a bare status string and nothing else	PASS
+T75	A student cannot issue certificates	PASS
+T76	Only an approving faculty member can revoke	PASS
+T77	After revocation the public check returns revoked	PASS
+T78	A revoked certificate cannot be reinstated or deleted	PASS
+T79	Another student cannot read the certificate row (RLS)	PASS
+T80	SGPA is derived in a view: Asha = (9*4 + 8*3)/7 = 8.57 (course 3 incomplete, excluded)	PASS
+T81	SGPA view is filtered by RLS: Bharat cannot see Asha's SGPA	PASS
+T82	v_revision_timeline: LAG gives NULL for seq 1 and a gap for later rows; after_freeze set only for the late edit	PASS
+T90	Course 1 has 9 revisions and verifies	PASS
+T91	seal_batch seals seq 1..9 into batch 1; stored root equals the root recomputed from the chain	PASS
+T92	seal_batch with nothing new returns NULL	PASS
+T37	merkle_batches and anchors are append-only as well (UPDATE and DELETE blocked)	PASS
+T93	merkle_root is deterministic and order-sensitive	PASS
+T94	Application role cannot seal batches or run verification	PASS
+T100	Edit a row's value: verify_chain names that row (seq 3) as broken	PASS
+T101	Edit a row and re-hash only that row: detected at the NEXT row (seq 4), whose prev_hash no longer matches	PASS
+T102	Delete a middle row: reported as a sequence gap at seq 4	PASS
+T103	Edit the free-text reason: detected	PASS
+T104	Attacker re-hashes the whole chain after changing seq 2, but a later revision of the same mark (seq 8) still records old_value 40: caught by the old_value continuity check	PASS
+T105	Edit marks.current_value directly (bypassing the ledger): verify_marks_current flags the mark	PASS
+T106	Forge a stored Merkle root: verify_batches flags the batch	PASS
+T107	verify_all_chains reports the tampered course and keeps the untouched courses green	PASS
+T108	Truncate the tail (delete the last row): verify_chain ALONE cannot see it (known limitation of any hash chain)	PASS
+T109	...but the same truncation is flagged by the marks cross-check and the batch check (1 mark and 1 batch inconsistent)	PASS
+T110	seal_batch refuses to seal a course whose chain does not verify	PASS
+T120	After all attack tests, every course verifies again (no tamper leaked)	PASS

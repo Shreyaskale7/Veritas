@@ -1,0 +1,1 @@
+Veritas is a marks and certificate ledger where PostgreSQL itself refuses to let a grade be quietly changed: every edit is a hash-chained revision, and edits, deletions and full re-hashes all get caught. Built for DBMS (CD252IA) at RVCE.

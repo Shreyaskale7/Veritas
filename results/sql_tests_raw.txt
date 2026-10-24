@@ -1,0 +1,128 @@
+psql:tests.sql:7: NOTICE:  schema "t" does not exist, skipping
+psql:tests.sql:177: NOTICE:  truncate cascades to table "anomaly_alerts"
+psql:tests.sql:177: NOTICE:  truncate cascades to table "anomaly_alerts"
+ put 
+-----
+ 15
+(1 row)
+
+ put 
+-----
+ 23
+(1 row)
+
+ put 
+-----
+ 24
+(1 row)
+
+ seal_batch | seal_batch | seal_batch 
+------------+------------+------------
+            |          2 |          3
+(1 row)
+
+ put 
+-----
+ 25
+(1 row)
+
+ seal_batch 
+------------
+          4
+(1 row)
+
+
+===== RESULTS =====
+  id  | result |                                                                                    descr                                                                                    | detail 
+------+--------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------
+ T01  | PASS   | Seed data loaded: 7 users, 3 courses, 27 marks rows                                                                                                                         | 
+ T02  | PASS   | A faculty user cannot also be inserted as a student (disjoint specialization)                                                                                               | 
+ T03  | PASS   | Duplicate USN is rejected                                                                                                                                                   | 
+ T04  | PASS   | Role of a specialised user cannot be changed                                                                                                                                | 
+ T05  | PASS   | Assessment with non-positive max_marks is rejected                                                                                                                          | 
+ T10  | PASS   | First revision of a course: seq 1, no predecessor, genesis prev_hash, old_value NULL                                                                                        | 
+ T11  | PASS   | Course 1 has contiguous seq 1..7 and each prev_hash equals the previous row_hash                                                                                            | 
+ T12  | PASS   | verify_chain accepts the untouched course-1 chain (7 rows)                                                                                                                  | 
+ T13  | PASS   | A pre-freeze correction records old_value = the previous value (38 -> 40)                                                                                                   | 
+ T14  | PASS   | Chains are per course: course 2 starts at seq 1 with its own genesis hash and verifies                                                                                      | 
+ T15  | PASS   | Value above max_marks is rejected                                                                                                                                           | 
+ T16  | PASS   | Negative value is rejected                                                                                                                                                  | 
+ T17  | PASS   | Writing the same value again is rejected as a no-op                                                                                                                         | 
+ T18  | PASS   | Failed writes leave no partial state: revision count and mark value unchanged                                                                                               | 
+ T19  | PASS   | Faculty who does not teach the course cannot write its marks                                                                                                                | 
+ T20  | PASS   | Acting user must equal the signed-in user (cannot write as someone else)                                                                                                    | 
+ T21  | PASS   | Anonymous session cannot write marks                                                                                                                                        | 
+ T30  | PASS   | UPDATE on mark_revisions is blocked (even for the owner)                                                                                                                    | 
+ T31  | PASS   | DELETE on mark_revisions is blocked                                                                                                                                         | 
+ T32  | PASS   | TRUNCATE on mark_revisions is blocked: plain form by the foreign keys, CASCADE form by the guard trigger                                                                    | 
+ T33  | PASS   | Application role has no UPDATE/DELETE/INSERT privilege on mark_revisions                                                                                                    | 
+ T34  | PASS   | Direct UPDATE of marks.current_value is blocked for the owner (must use apply_change)                                                                                       | 
+ T35  | PASS   | Application role cannot UPDATE marks directly                                                                                                                               | 
+ T36  | PASS   | DELETE on marks is blocked                                                                                                                                                  | 
+ T40  | PASS   | After the freeze deadline a direct edit is rejected                                                                                                                         | 
+ T41  | PASS   | Only the course faculty can raise a change request                                                                                                                          | 
+ T42  | PASS   | Request above max_marks is rejected                                                                                                                                         | 
+ T43  | PASS   | Request without a meaningful reason is rejected (min 5 characters)                                                                                                          | 
+ T44  | PASS   | Valid request is created as pending                                                                                                                                         | 
+ T45  | PASS   | A pending (undecided) request does not authorise a revision                                                                                                                 | 
+ T46  | PASS   | Faculty without can_approve cannot decide a request                                                                                                                         | 
+ T47  | PASS   | The requester cannot approve their own request                                                                                                                              | 
+ T48  | PASS   | HOD approval recorded: approved_by = 4 and decided_at set                                                                                                                   | 
+ T49  | PASS   | An approved request authorises only the exact proposed value (43 <> 42 rejected)                                                                                            | 
+ T50  | PASS   | Approved request applies: revision links the request, mark updated, request becomes applied                                                                                 | 
+ T51  | PASS   | A used request cannot be reused                                                                                                                                             | 
+ T52  | PASS   | Rejected request is stored with the deciding checker                                                                                                                        | 
+ T53  | PASS   | A rejected request cannot be applied                                                                                                                                        | 
+ T54  | PASS   | A decided request cannot be decided again                                                                                                                                   | 
+ T55  | PASS   | Illegal status transitions are blocked (rejected -> approved, approved -> applied outside apply_change)                                                                     | 
+ T56  | PASS   | Even a checker cannot approve his own request (checker_differs constraint)                                                                                                  | 
+ T57  | PASS   | Optimistic versioning: stale expected_version raises a serialization failure (40001)                                                                                        | 
+ T58  | PASS   | Optimistic versioning: correct expected_version succeeds                                                                                                                    | 
+ T60  | PASS   | Student sees only own marks rows (9 of 27)                                                                                                                                  | 
+ T61  | PASS   | Student sees no other student's marks                                                                                                                                       | 
+ T62  | PASS   | Faculty sees only marks of the courses taught (course 1 -> 9 rows)                                                                                                          | 
+ T63  | PASS   | Admin sees all marks (27)                                                                                                                                                   | 
+ T64  | PASS   | Student sees own revisions (with hashes) and none of other students'                                                                                                        | 
+ T65  | PASS   | Change requests: student 0, non-checker faculty 0, requester 2 (own), HOD sees all                                                                                          | 
+ T66  | PASS   | Users e-mail column is not readable by the application role                                                                                                                 | 
+ T67  | PASS   | A student sees only their own users row                                                                                                                                     | 
+ T68  | PASS   | Students cannot read anomaly alerts                                                                                                                                         | 
+ T69  | PASS   | Application role cannot write to marks or users directly                                                                                                                    | 
+ T70  | PASS   | Certificate issued by faculty with a random 128-bit salt                                                                                                                    | 
+ T71  | PASS   | Public check with the right salt and digest returns valid (anonymous session)                                                                                               | 
+ T72  | PASS   | Wrong salt, wrong digest or unknown id all return unknown                                                                                                                   | 
+ T73  | PASS   | Stored doc_hash is salted: it differs from the plain SHA-256 of the content                                                                                                 | 
+ T74  | PASS   | The public check returns a bare status string and nothing else                                                                                                              | 
+ T75  | PASS   | A student cannot issue certificates                                                                                                                                         | 
+ T76  | PASS   | Only an approving faculty member can revoke                                                                                                                                 | 
+ T77  | PASS   | After revocation the public check returns revoked                                                                                                                           | 
+ T78  | PASS   | A revoked certificate cannot be reinstated or deleted                                                                                                                       | 
+ T79  | PASS   | Another student cannot read the certificate row (RLS)                                                                                                                       | 
+ T80  | PASS   | SGPA is derived in a view: Asha = (9*4 + 8*3)/7 = 8.57 (course 3 incomplete, excluded)                                                                                      | 
+ T81  | PASS   | SGPA view is filtered by RLS: Bharat cannot see Asha's SGPA                                                                                                                 | 
+ T82  | PASS   | v_revision_timeline: LAG gives NULL for seq 1 and a gap for later rows; after_freeze set only for the late edit                                                             | 
+ T90  | PASS   | Course 1 has 9 revisions and verifies                                                                                                                                       | 
+ T91  | PASS   | seal_batch seals seq 1..9 into batch 1; stored root equals the root recomputed from the chain                                                                               | 
+ T92  | PASS   | seal_batch with nothing new returns NULL                                                                                                                                    | 
+ T37  | PASS   | merkle_batches and anchors are append-only as well (UPDATE and DELETE blocked)                                                                                              | 
+ T93  | PASS   | merkle_root is deterministic and order-sensitive                                                                                                                            | 
+ T94  | PASS   | Application role cannot seal batches or run verification                                                                                                                    | 
+ T100 | PASS   | Edit a row's value: verify_chain names that row (seq 3) as broken                                                                                                           | 
+ T101 | PASS   | Edit a row and re-hash only that row: detected at the NEXT row (seq 4), whose prev_hash no longer matches                                                                   | 
+ T102 | PASS   | Delete a middle row: reported as a sequence gap at seq 4                                                                                                                    | 
+ T103 | PASS   | Edit the free-text reason: detected                                                                                                                                         | 
+ T104 | PASS   | Attacker re-hashes the whole chain after changing seq 2, but a later revision of the same mark (seq 8) still records old_value 40: caught by the old_value continuity check | 
+ T105 | PASS   | Edit marks.current_value directly (bypassing the ledger): verify_marks_current flags the mark                                                                               | 
+ T106 | PASS   | Forge a stored Merkle root: verify_batches flags the batch                                                                                                                  | 
+ T107 | PASS   | verify_all_chains reports the tampered course and keeps the untouched courses green                                                                                         | 
+ T108 | PASS   | Truncate the tail (delete the last row): verify_chain ALONE cannot see it (known limitation of any hash chain)                                                              | 
+ T109 | PASS   | ...but the same truncation is flagged by the marks cross-check and the batch check (1 mark and 1 batch inconsistent)                                                        | 
+ T110 | PASS   | seal_batch refuses to seal a course whose chain does not verify                                                                                                             | 
+ T120 | PASS   | After all attack tests, every course verifies again (no tamper leaked)                                                                                                      | 
+(84 rows)
+
+ passed | failed | total 
+--------+--------+-------
+     84 |      0 |    84
+(1 row)
+

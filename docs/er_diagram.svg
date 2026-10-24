@@ -1,0 +1,424 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1480 788" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11.5">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#6366f1"/></marker></defs>
+<rect width="1480" height="788" fill="#ffffff"/>
+<line x1="562" y1="472" x2="622" y2="474" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="569" y="469" fill="#444" font-size="10">N</text>
+<text x="615" y="470" fill="#444" font-size="10">1</text>
+<line x1="1214" y1="465" x2="266" y2="298" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="1100" y="442" fill="#444" font-size="10">N</text>
+<text x="380" y="315" fill="#444" font-size="10">1</text>
+<line x1="1214" y1="489" x2="1154" y2="491" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="1207" y="486" fill="#444" font-size="10">N</text>
+<text x="1161" y="487" fill="#444" font-size="10">1</text>
+<line x1="1214" y1="238" x2="562" y2="116" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="1136" y="220" fill="#444" font-size="10">N</text>
+<text x="640" y="128" fill="#444" font-size="10">1</text>
+<line x1="622" y1="287" x2="562" y2="292" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="615" y="285" fill="#444" font-size="10">N</text>
+<text x="569" y="289" fill="#444" font-size="10">1</text>
+<line x1="326" y1="670" x2="266" y2="675" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="319" y="668" fill="#444" font-size="10">N</text>
+<text x="273" y="672" fill="#444" font-size="10">1</text>
+<line x1="148" y1="613" x2="148" y2="324" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="148" y="575" fill="#444" font-size="10">N</text>
+<text x="148" y="356" fill="#444" font-size="10">1</text>
+<line x1="219" y1="613" x2="694" y2="124" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="276" y="551" fill="#444" font-size="10">N</text>
+<text x="637" y="180" fill="#444" font-size="10">1</text>
+<line x1="918" y1="133" x2="266" y2="255" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="840" y="145" fill="#444" font-size="10">N</text>
+<text x="344" y="237" fill="#444" font-size="10">1</text>
+<line x1="1036" y1="192" x2="1036" y2="230" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="1036" y="194" fill="#444" font-size="10">N</text>
+<text x="1036" y="222" fill="#444" font-size="10">1</text>
+<line x1="918" y1="133" x2="266" y2="255" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="840" y="145" fill="#444" font-size="10">N</text>
+<text x="344" y="237" fill="#444" font-size="10">1</text>
+<line x1="326" y1="292" x2="266" y2="287" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="319" y="289" fill="#444" font-size="10">N</text>
+<text x="273" y="285" fill="#444" font-size="10">1</text>
+<line x1="352" y1="230" x2="197" y2="107" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="334" y="212" fill="#444" font-size="10">N</text>
+<text x="215" y="119" fill="#444" font-size="10">1</text>
+<line x1="224" y1="230" x2="340" y2="158" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="238" y="218" fill="#444" font-size="10">N</text>
+<text x="327" y="164" fill="#444" font-size="10">1</text>
+<line x1="1036" y1="413" x2="1036" y2="375" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="1036" y="405" fill="#444" font-size="10">N</text>
+<text x="1036" y="377" fill="#444" font-size="10">1</text>
+<line x1="918" y1="456" x2="562" y2="341" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="875" y="439" fill="#444" font-size="10">N</text>
+<text x="605" y="351" fill="#444" font-size="10">1</text>
+<line x1="1036" y1="413" x2="1036" y2="192" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="1036" y="383" fill="#444" font-size="10">N</text>
+<text x="1036" y="216" fill="#444" font-size="10">1</text>
+<line x1="918" y1="465" x2="266" y2="306" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="840" y="443" fill="#444" font-size="10">N</text>
+<text x="344" y="322" fill="#444" font-size="10">1</text>
+<line x1="941" y1="230" x2="802" y2="124" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="924" y="214" fill="#444" font-size="10">N</text>
+<text x="818" y="134" fill="#444" font-size="10">1</text>
+<line x1="918" y1="292" x2="858" y2="287" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="911" y="289" fill="#444" font-size="10">N</text>
+<text x="865" y="285" fill="#444" font-size="10">1</text>
+<line x1="631" y1="413" x2="562" y2="372" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="623" y="405" fill="#444" font-size="10">N</text>
+<text x="570" y="374" fill="#444" font-size="10">1</text>
+<line x1="708" y1="613" x2="476" y2="158" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="680" y="555" fill="#444" font-size="10">N</text>
+<text x="504" y="210" fill="#444" font-size="10">1</text>
+<line x1="622" y1="84" x2="562" y2="87" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="615" y="81" fill="#444" font-size="10">N</text>
+<text x="569" y="84" fill="#444" font-size="10">1</text>
+<line x1="326" y1="84" x2="266" y2="79" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="319" y="80" fill="#444" font-size="10">N</text>
+<text x="273" y="76" fill="#444" font-size="10">1</text>
+<rect x="326" y="413" width="236" height="111" rx="6" fill="#fdf2f8" stroke="#94a3b8"/>
+<rect x="326" y="413" width="236" height="26" rx="6" fill="#1e293b"/><rect x="326" y="425" width="236" height="14" fill="#1e293b"/>
+<text x="336" y="431" fill="#fff" font-weight="700" font-size="13">anchors</text>
+<text x="334" y="452" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="356" y="452" fill="#111" font-weight="700">anchor_id</text>
+<text x="554" y="452" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="334" y="469" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="356" y="469" fill="#111">batch_id</text>
+<text x="554" y="469" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="334" y="486" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="486" fill="#111">anchor_type</text>
+<text x="554" y="486" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="334" y="503" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="503" fill="#111">anchor_ref</text>
+<text x="554" y="503" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="334" y="520" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="520" fill="#111">anchored_at</text>
+<text x="554" y="520" fill="#64748b" text-anchor="end" font-size="10">timestamptz</text>
+<rect x="1214" y="413" width="236" height="145" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+<rect x="1214" y="413" width="236" height="26" rx="6" fill="#1e293b"/><rect x="1214" y="425" width="236" height="14" fill="#1e293b"/>
+<text x="1224" y="431" fill="#fff" font-weight="700" font-size="13">anomaly_alerts</text>
+<text x="1222" y="452" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="1244" y="452" fill="#111" font-weight="700">alert_id</text>
+<text x="1442" y="452" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="1222" y="469" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="1244" y="469" fill="#111">revision_id</text>
+<text x="1442" y="469" fill="#64748b" text-anchor="end" font-size="10">bigint</text>
+<text x="1222" y="486" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="1244" y="486" fill="#111">reviewed_by</text>
+<text x="1442" y="486" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="1222" y="503" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="1244" y="503" fill="#111">model_name</text>
+<text x="1442" y="503" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="1222" y="520" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="1244" y="520" fill="#111">score</text>
+<text x="1442" y="520" fill="#64748b" text-anchor="end" font-size="10">real</text>
+<text x="1222" y="537" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="1244" y="537" fill="#111">top_features</text>
+<text x="1442" y="537" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="1222" y="554" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="1244" y="554" fill="#111">…</text>
+<text x="1442" y="554" fill="#64748b" text-anchor="end" font-size="10"></text>
+<rect x="1214" y="230" width="236" height="60" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+<rect x="1214" y="230" width="236" height="26" rx="6" fill="#1e293b"/><rect x="1214" y="242" width="236" height="14" fill="#1e293b"/>
+<text x="1224" y="248" fill="#fff" font-weight="700" font-size="13">app_credentials</text>
+<text x="1222" y="269" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="1244" y="269" fill="#111" font-weight="700">user_id</text>
+<text x="1442" y="269" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="1222" y="286" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="1244" y="286" fill="#111">password_hash</text>
+<text x="1442" y="286" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<rect x="622" y="230" width="236" height="94" rx="6" fill="#eef2ff" stroke="#94a3b8"/>
+<rect x="622" y="230" width="236" height="26" rx="6" fill="#1e293b"/><rect x="622" y="242" width="236" height="14" fill="#1e293b"/>
+<text x="632" y="248" fill="#fff" font-weight="700" font-size="13">assessments</text>
+<text x="630" y="269" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="652" y="269" fill="#111" font-weight="700">course_id</text>
+<text x="850" y="269" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="630" y="286" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="652" y="286" fill="#111" font-weight="700">type</text>
+<text x="850" y="286" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="630" y="303" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="303" fill="#111">max_marks</text>
+<text x="850" y="303" fill="#64748b" text-anchor="end" font-size="10">numeric</text>
+<text x="630" y="320" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="320" fill="#111">freeze_at</text>
+<text x="850" y="320" fill="#64748b" text-anchor="end" font-size="10">timestamptz</text>
+<rect x="326" y="613" width="236" height="94" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+<rect x="326" y="613" width="236" height="26" rx="6" fill="#1e293b"/><rect x="326" y="625" width="236" height="14" fill="#1e293b"/>
+<text x="336" y="631" fill="#fff" font-weight="700" font-size="13">certificate_documents</text>
+<text x="334" y="652" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="356" y="652" fill="#111" font-weight="700">cert_id</text>
+<text x="554" y="652" fill="#64748b" text-anchor="end" font-size="10">uuid</text>
+<text x="334" y="669" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="669" fill="#111">mime</text>
+<text x="554" y="669" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="334" y="686" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="686" fill="#111">doc</text>
+<text x="554" y="686" fill="#64748b" text-anchor="end" font-size="10">bytea</text>
+<text x="334" y="703" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="703" fill="#111">created_at</text>
+<text x="554" y="703" fill="#64748b" text-anchor="end" font-size="10">timestamptz</text>
+<rect x="30" y="613" width="236" height="145" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+<rect x="30" y="613" width="236" height="26" rx="6" fill="#1e293b"/><rect x="30" y="625" width="236" height="14" fill="#1e293b"/>
+<text x="40" y="631" fill="#fff" font-weight="700" font-size="13">certificates</text>
+<text x="38" y="652" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="60" y="652" fill="#111" font-weight="700">cert_id</text>
+<text x="258" y="652" fill="#64748b" text-anchor="end" font-size="10">uuid</text>
+<text x="38" y="669" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="60" y="669" fill="#111">student_id</text>
+<text x="258" y="669" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="38" y="686" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="60" y="686" fill="#111">issued_by</text>
+<text x="258" y="686" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="38" y="703" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="60" y="703" fill="#111">cert_type</text>
+<text x="258" y="703" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="38" y="720" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="60" y="720" fill="#111">doc_hash</text>
+<text x="258" y="720" fill="#64748b" text-anchor="end" font-size="10">char</text>
+<text x="38" y="737" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="60" y="737" fill="#111">salt</text>
+<text x="258" y="737" fill="#64748b" text-anchor="end" font-size="10">char</text>
+<text x="38" y="754" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="60" y="754" fill="#111">…</text>
+<text x="258" y="754" fill="#64748b" text-anchor="end" font-size="10"></text>
+<rect x="918" y="30" width="236" height="162" rx="6" fill="#eef2ff" stroke="#94a3b8"/>
+<rect x="918" y="30" width="236" height="26" rx="6" fill="#1e293b"/><rect x="918" y="42" width="236" height="14" fill="#1e293b"/>
+<text x="928" y="48" fill="#fff" font-weight="700" font-size="13">change_requests</text>
+<text x="926" y="69" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="948" y="69" fill="#111" font-weight="700">request_id</text>
+<text x="1146" y="69" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="86" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="948" y="86" fill="#111">mark_id</text>
+<text x="1146" y="86" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="103" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="948" y="103" fill="#111">requested_by</text>
+<text x="1146" y="103" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="120" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="948" y="120" fill="#111">approved_by</text>
+<text x="1146" y="120" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="137" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="137" fill="#111">proposed_value</text>
+<text x="1146" y="137" fill="#64748b" text-anchor="end" font-size="10">numeric</text>
+<text x="926" y="154" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="154" fill="#111">reason</text>
+<text x="1146" y="154" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="926" y="171" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="171" fill="#111">status</text>
+<text x="1146" y="171" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="926" y="188" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="188" fill="#111">…</text>
+<text x="1146" y="188" fill="#64748b" text-anchor="end" font-size="10"></text>
+<rect x="326" y="230" width="236" height="145" rx="6" fill="#eef2ff" stroke="#94a3b8"/>
+<rect x="326" y="230" width="236" height="26" rx="6" fill="#1e293b"/><rect x="326" y="242" width="236" height="14" fill="#1e293b"/>
+<text x="336" y="248" fill="#fff" font-weight="700" font-size="13">courses</text>
+<text x="334" y="269" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="356" y="269" fill="#111" font-weight="700">course_id</text>
+<text x="554" y="269" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="334" y="286" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="356" y="286" fill="#111">faculty_id</text>
+<text x="554" y="286" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="334" y="303" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="356" y="303" fill="#111">institution_id</text>
+<text x="554" y="303" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="334" y="320" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="320" fill="#111">course_code</text>
+<text x="554" y="320" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="334" y="337" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="337" fill="#111">title</text>
+<text x="554" y="337" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="334" y="354" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="354" fill="#111">credits</text>
+<text x="554" y="354" fill="#64748b" text-anchor="end" font-size="10">smallint</text>
+<text x="334" y="371" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="371" fill="#111">…</text>
+<text x="554" y="371" fill="#64748b" text-anchor="end" font-size="10"></text>
+<rect x="30" y="230" width="236" height="94" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+<rect x="30" y="230" width="236" height="26" rx="6" fill="#1e293b"/><rect x="30" y="242" width="236" height="14" fill="#1e293b"/>
+<text x="40" y="248" fill="#fff" font-weight="700" font-size="13">faculty</text>
+<text x="38" y="269" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="60" y="269" fill="#111" font-weight="700">user_id</text>
+<text x="258" y="269" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="38" y="286" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="60" y="286" fill="#111">employee_id</text>
+<text x="258" y="286" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="38" y="303" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="60" y="303" fill="#111">department</text>
+<text x="258" y="303" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="38" y="320" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="60" y="320" fill="#111">can_approve</text>
+<text x="258" y="320" fill="#64748b" text-anchor="end" font-size="10">boolean</text>
+<rect x="30" y="30" width="236" height="77" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+<rect x="30" y="30" width="236" height="26" rx="6" fill="#1e293b"/><rect x="30" y="42" width="236" height="14" fill="#1e293b"/>
+<text x="40" y="48" fill="#fff" font-weight="700" font-size="13">institutions</text>
+<text x="38" y="69" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="60" y="69" fill="#111" font-weight="700">institution_id</text>
+<text x="258" y="69" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="38" y="86" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="60" y="86" fill="#111">slug</text>
+<text x="258" y="86" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="38" y="103" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="60" y="103" fill="#111">name</text>
+<text x="258" y="103" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<rect x="918" y="613" width="236" height="111" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+<rect x="918" y="613" width="236" height="26" rx="6" fill="#1e293b"/><rect x="918" y="625" width="236" height="14" fill="#1e293b"/>
+<text x="928" y="631" fill="#fff" font-weight="700" font-size="13">integrity_runs</text>
+<text x="926" y="652" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="948" y="652" fill="#111" font-weight="700">run_id</text>
+<text x="1146" y="652" fill="#64748b" text-anchor="end" font-size="10">bigint</text>
+<text x="926" y="669" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="669" fill="#111">kind</text>
+<text x="1146" y="669" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="926" y="686" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="686" fill="#111">ok</text>
+<text x="1146" y="686" fill="#64748b" text-anchor="end" font-size="10">boolean</text>
+<text x="926" y="703" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="703" fill="#111">detail</text>
+<text x="1146" y="703" fill="#64748b" text-anchor="end" font-size="10">jsonb</text>
+<text x="926" y="720" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="720" fill="#111">…</text>
+<text x="1146" y="720" fill="#64748b" text-anchor="end" font-size="10"></text>
+<rect x="1214" y="613" width="236" height="111" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+<rect x="1214" y="613" width="236" height="26" rx="6" fill="#1e293b"/><rect x="1214" y="625" width="236" height="14" fill="#1e293b"/>
+<text x="1224" y="631" fill="#fff" font-weight="700" font-size="13">login_attempts</text>
+<text x="1222" y="652" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="1244" y="652" fill="#111" font-weight="700">attempt_id</text>
+<text x="1442" y="652" fill="#64748b" text-anchor="end" font-size="10">bigint</text>
+<text x="1222" y="669" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="1244" y="669" fill="#111">email</text>
+<text x="1442" y="669" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="1222" y="686" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="1244" y="686" fill="#111">ip</text>
+<text x="1442" y="686" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="1222" y="703" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="1244" y="703" fill="#111">ok</text>
+<text x="1442" y="703" fill="#64748b" text-anchor="end" font-size="10">boolean</text>
+<text x="1222" y="720" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="1244" y="720" fill="#111">…</text>
+<text x="1442" y="720" fill="#64748b" text-anchor="end" font-size="10"></text>
+<rect x="918" y="413" width="236" height="162" rx="6" fill="#fdf2f8" stroke="#94a3b8"/>
+<rect x="918" y="413" width="236" height="26" rx="6" fill="#1e293b"/><rect x="918" y="425" width="236" height="14" fill="#1e293b"/>
+<text x="928" y="431" fill="#fff" font-weight="700" font-size="13">mark_revisions</text>
+<text x="926" y="452" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="948" y="452" fill="#111" font-weight="700">revision_id</text>
+<text x="1146" y="452" fill="#64748b" text-anchor="end" font-size="10">bigint</text>
+<text x="926" y="469" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="948" y="469" fill="#111">mark_id</text>
+<text x="1146" y="469" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="486" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="948" y="486" fill="#111">course_id</text>
+<text x="1146" y="486" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="503" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="948" y="503" fill="#111">request_id</text>
+<text x="1146" y="503" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="520" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="948" y="520" fill="#111">prev_revision_id</text>
+<text x="1146" y="520" fill="#64748b" text-anchor="end" font-size="10">bigint</text>
+<text x="926" y="537" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="948" y="537" fill="#111">changed_by</text>
+<text x="1146" y="537" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="554" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="554" fill="#111">seq</text>
+<text x="1146" y="554" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="571" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="571" fill="#111">…</text>
+<text x="1146" y="571" fill="#64748b" text-anchor="end" font-size="10"></text>
+<rect x="918" y="230" width="236" height="145" rx="6" fill="#eef2ff" stroke="#94a3b8"/>
+<rect x="918" y="230" width="236" height="26" rx="6" fill="#1e293b"/><rect x="918" y="242" width="236" height="14" fill="#1e293b"/>
+<text x="928" y="248" fill="#fff" font-weight="700" font-size="13">marks</text>
+<text x="926" y="269" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="948" y="269" fill="#111" font-weight="700">mark_id</text>
+<text x="1146" y="269" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="286" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="948" y="286" fill="#111">student_id</text>
+<text x="1146" y="286" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="303" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="948" y="303" fill="#111">course_id</text>
+<text x="1146" y="303" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="320" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="948" y="320" fill="#111">assessment_type</text>
+<text x="1146" y="320" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="926" y="337" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="337" fill="#111">current_value</text>
+<text x="1146" y="337" fill="#64748b" text-anchor="end" font-size="10">numeric</text>
+<text x="926" y="354" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="354" fill="#111">version</text>
+<text x="1146" y="354" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="926" y="371" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="948" y="371" fill="#111">updated_at</text>
+<text x="1146" y="371" fill="#64748b" text-anchor="end" font-size="10">timestamptz</text>
+<rect x="622" y="413" width="236" height="128" rx="6" fill="#fdf2f8" stroke="#94a3b8"/>
+<rect x="622" y="413" width="236" height="26" rx="6" fill="#1e293b"/><rect x="622" y="425" width="236" height="14" fill="#1e293b"/>
+<text x="632" y="431" fill="#fff" font-weight="700" font-size="13">merkle_batches</text>
+<text x="630" y="452" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="652" y="452" fill="#111" font-weight="700">batch_id</text>
+<text x="850" y="452" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="630" y="469" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="652" y="469" fill="#111">course_id</text>
+<text x="850" y="469" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="630" y="486" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="486" fill="#111">seq_from</text>
+<text x="850" y="486" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="630" y="503" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="503" fill="#111">seq_to</text>
+<text x="850" y="503" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="630" y="520" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="520" fill="#111">merkle_root</text>
+<text x="850" y="520" fill="#64748b" text-anchor="end" font-size="10">char</text>
+<text x="630" y="537" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="537" fill="#111">…</text>
+<text x="850" y="537" fill="#64748b" text-anchor="end" font-size="10"></text>
+<rect x="622" y="613" width="236" height="128" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+<rect x="622" y="613" width="236" height="26" rx="6" fill="#1e293b"/><rect x="622" y="625" width="236" height="14" fill="#1e293b"/>
+<text x="632" y="631" fill="#fff" font-weight="700" font-size="13">notifications</text>
+<text x="630" y="652" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="652" y="652" fill="#111" font-weight="700">notification_id</text>
+<text x="850" y="652" fill="#64748b" text-anchor="end" font-size="10">bigint</text>
+<text x="630" y="669" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="652" y="669" fill="#111">user_id</text>
+<text x="850" y="669" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="630" y="686" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="686" fill="#111">kind</text>
+<text x="850" y="686" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="630" y="703" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="703" fill="#111">message</text>
+<text x="850" y="703" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="630" y="720" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="720" fill="#111">link</text>
+<text x="850" y="720" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="630" y="737" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="737" fill="#111">…</text>
+<text x="850" y="737" fill="#64748b" text-anchor="end" font-size="10"></text>
+<rect x="622" y="30" width="236" height="94" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+<rect x="622" y="30" width="236" height="26" rx="6" fill="#1e293b"/><rect x="622" y="42" width="236" height="14" fill="#1e293b"/>
+<text x="632" y="48" fill="#fff" font-weight="700" font-size="13">students</text>
+<text x="630" y="69" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="652" y="69" fill="#111" font-weight="700">user_id</text>
+<text x="850" y="69" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="630" y="86" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="86" fill="#111">usn</text>
+<text x="850" y="86" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="630" y="103" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="103" fill="#111">branch</text>
+<text x="850" y="103" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="630" y="120" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="652" y="120" fill="#111">semester</text>
+<text x="850" y="120" fill="#64748b" text-anchor="end" font-size="10">smallint</text>
+<rect x="326" y="30" width="236" height="128" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+<rect x="326" y="30" width="236" height="26" rx="6" fill="#1e293b"/><rect x="326" y="42" width="236" height="14" fill="#1e293b"/>
+<text x="336" y="48" fill="#fff" font-weight="700" font-size="13">users</text>
+<text x="334" y="69" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="356" y="69" fill="#111" font-weight="700">user_id</text>
+<text x="554" y="69" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="334" y="86" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="356" y="86" fill="#111">institution_id</text>
+<text x="554" y="86" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="334" y="103" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="103" fill="#111">name</text>
+<text x="554" y="103" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="334" y="120" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="120" fill="#111">email</text>
+<text x="554" y="120" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="334" y="137" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="137" fill="#111">role</text>
+<text x="554" y="137" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="334" y="154" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="356" y="154" fill="#111">…</text>
+<text x="554" y="154" fill="#64748b" text-anchor="end" font-size="10"></text>
+</svg>

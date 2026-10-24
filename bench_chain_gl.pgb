@@ -1,0 +1,5 @@
+\set c random(1,10)
+BEGIN;
+INSERT INTO bench.chain_gl (course_id, mark_id, new_value, changed_by, reason) VALUES (:c, :c, 10, 2, 'bench');
+SELECT pg_sleep(0.002);
+COMMIT;
