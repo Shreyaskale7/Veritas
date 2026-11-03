@@ -290,3 +290,224 @@ DROP TRIGGER IF EXISTS courses_same_institution ON courses;
 CREATE TRIGGER courses_same_institution BEFORE INSERT OR UPDATE OF faculty_id, institution_id ON courses FOR EACH ROW EXECUTE FUNCTION trg_same_institution();
 DROP TRIGGER IF EXISTS marks_same_institution ON marks;
 CREATE TRIGGER marks_same_institution BEFORE INSERT ON marks FOR EACH ROW EXECUTE FUNCTION trg_same_institution();
+
+-- =====================================================================
+-- Administration and accounts: people, courses, assessments, enrolment, passwords, email preference, admin audit log.
+-- Every change goes through a SECURITY DEFINER function that checks the caller (require_user), requires the administrator role,
+-- is confined to the administrator's own institution, and writes an append-only audit row. No password is ever logged.
+-- =====================================================================
+ALTER TABLE users ADD COLUMN IF NOT EXISTS active       boolean NOT NULL DEFAULT true;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_notify boolean NOT NULL DEFAULT true;
+ALTER TABLE app_credentials ADD COLUMN IF NOT EXISTS must_change boolean NOT NULL DEFAULT false;
+ALTER TABLE notifications   ADD COLUMN IF NOT EXISTS emailed_at  timestamptz;
+GRANT SELECT (active, email_notify) ON users TO veritas_app;
+
+CREATE TABLE IF NOT EXISTS admin_actions (
+  action_id       bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  admin_id        integer     NOT NULL REFERENCES users(user_id),
+  institution_id  integer     NOT NULL REFERENCES institutions(institution_id),
+  action          text        NOT NULL,
+  detail          jsonb       NOT NULL DEFAULT '{}'::jsonb,
+  at              timestamptz NOT NULL DEFAULT now()
+);
+DROP TRIGGER IF EXISTS admin_actions_guard ON admin_actions;
+CREATE TRIGGER admin_actions_guard BEFORE UPDATE OR DELETE ON admin_actions FOR EACH ROW EXECUTE FUNCTION trg_block_modify();
+DROP TRIGGER IF EXISTS admin_actions_guard_t ON admin_actions;
+CREATE TRIGGER admin_actions_guard_t BEFORE TRUNCATE ON admin_actions FOR EACH STATEMENT EXECUTE FUNCTION trg_block_modify();
+ALTER TABLE admin_actions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS admin_actions_read ON admin_actions;
+CREATE POLICY admin_actions_read ON admin_actions FOR SELECT TO veritas_app
+  USING (app_role() = 'admin' AND institution_id = app_institution());
+GRANT SELECT ON admin_actions TO veritas_app;
+
+-- Password rule shared by every way a password can be set.
+CREATE OR REPLACE FUNCTION check_password(p text) RETURNS void LANGUAGE plpgsql IMMUTABLE AS $$
+BEGIN
+  IF p IS NULL OR length(p) < 10 THEN RAISE EXCEPTION 'password must be at least 10 characters'; END IF;
+  IF p !~ '[A-Za-z]' OR p !~ '[0-9]' THEN RAISE EXCEPTION 'password must contain a letter and a digit'; END IF;
+END $$;
+
+-- The administrator's institution, or an exception. Inactive accounts never act.
+CREATE OR REPLACE FUNCTION require_admin(p_by integer) RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
+DECLARE inst integer;
+BEGIN
+  PERFORM require_user(p_by);
+  SELECT institution_id INTO inst FROM users WHERE user_id = p_by AND role = 'admin' AND active;
+  IF inst IS NULL THEN RAISE EXCEPTION 'administrators only'; END IF;
+  RETURN inst;
+END $$;
+
+CREATE OR REPLACE FUNCTION admin_log(p_by integer, p_inst integer, p_action text, p_detail jsonb)
+RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path = public, pg_temp AS $$
+  INSERT INTO admin_actions (admin_id, institution_id, action, detail) VALUES (p_by, p_inst, p_action, coalesce(p_detail, '{}'::jsonb))
+$$;
+
+-- a person of the caller's institution, or an exception (other institutions are indistinguishable from "no such user")
+CREATE OR REPLACE FUNCTION admin_target(p_inst integer, p_user integer) RETURNS users LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
+DECLARE u users%ROWTYPE;
+BEGIN
+  SELECT * INTO u FROM users WHERE user_id = p_user AND institution_id = p_inst;
+  IF NOT FOUND THEN RAISE EXCEPTION 'no such person in your institution'; END IF;
+  RETURN u;
+END $$;
+
+CREATE OR REPLACE FUNCTION admin_create_user(p_by integer, p_name text, p_email text, p_role text, p_password text,
+    p_usn text DEFAULT NULL, p_branch text DEFAULT NULL, p_semester integer DEFAULT NULL,
+    p_employee_id text DEFAULT NULL, p_department text DEFAULT NULL, p_can_approve boolean DEFAULT false)
+RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
+DECLARE inst integer; uid integer;
+BEGIN
+  inst := require_admin(p_by);
+  IF coalesce(btrim(p_name), '') = '' THEN RAISE EXCEPTION 'name is required'; END IF;
+  IF p_email !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' THEN RAISE EXCEPTION 'a valid e-mail address is required'; END IF;
+  IF p_role NOT IN ('student', 'faculty', 'admin') THEN RAISE EXCEPTION 'role must be student, faculty or admin'; END IF;
+  PERFORM check_password(p_password);
+  IF p_role = 'student' AND (coalesce(p_usn, '') = '' OR coalesce(p_branch, '') = '' OR p_semester IS NULL) THEN
+    RAISE EXCEPTION 'a student needs usn, branch and semester'; END IF;
+  IF p_role = 'faculty' AND (coalesce(p_employee_id, '') = '' OR coalesce(p_department, '') = '') THEN
+    RAISE EXCEPTION 'faculty need an employee id and a department'; END IF;
+  BEGIN
+    INSERT INTO users (name, email, role, institution_id) VALUES (btrim(p_name), lower(btrim(p_email)), p_role, inst) RETURNING user_id INTO uid;
+    IF p_role = 'student' THEN INSERT INTO students (user_id, usn, branch, semester) VALUES (uid, btrim(p_usn), p_branch, p_semester);
+    ELSIF p_role = 'faculty' THEN INSERT INTO faculty (user_id, employee_id, department, can_approve) VALUES (uid, btrim(p_employee_id), p_department, coalesce(p_can_approve, false));
+    END IF;
+  EXCEPTION WHEN unique_violation THEN
+    RAISE EXCEPTION 'that e-mail, USN or employee id is already registered';
+  WHEN check_violation THEN
+    RAISE EXCEPTION 'a value is out of range (semester must be 1-8)';
+  END;
+  INSERT INTO app_credentials (user_id, password_hash, must_change) VALUES (uid, crypt(p_password, gen_salt('bf')), true);
+  PERFORM admin_log(p_by, inst, 'create_user', jsonb_build_object('user_id', uid, 'email', lower(btrim(p_email)), 'role', p_role));
+  RETURN uid;
+END $$;
+
+CREATE OR REPLACE FUNCTION admin_set_active(p_by integer, p_user integer, p_active boolean)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
+DECLARE inst integer; t users%ROWTYPE;
+BEGIN
+  inst := require_admin(p_by);
+  t := admin_target(inst, p_user);
+  IF NOT p_active AND p_user = p_by THEN RAISE EXCEPTION 'you cannot deactivate your own account'; END IF;
+  IF NOT p_active AND t.role = 'admin' AND NOT EXISTS (SELECT 1 FROM users WHERE institution_id = inst AND role = 'admin' AND active AND user_id <> p_user) THEN
+    RAISE EXCEPTION 'the last active administrator cannot be deactivated'; END IF;
+  UPDATE users SET active = p_active WHERE user_id = p_user;
+  PERFORM admin_log(p_by, inst, CASE WHEN p_active THEN 'activate_user' ELSE 'deactivate_user' END, jsonb_build_object('user_id', p_user));
+END $$;
+
+CREATE OR REPLACE FUNCTION admin_set_can_approve(p_by integer, p_user integer, p_flag boolean)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
+DECLARE inst integer; t users%ROWTYPE;
+BEGIN
+  inst := require_admin(p_by);
+  t := admin_target(inst, p_user);
+  IF t.role <> 'faculty' THEN RAISE EXCEPTION 'only faculty can be approvers'; END IF;
+  UPDATE faculty SET can_approve = p_flag WHERE user_id = p_user;
+  PERFORM admin_log(p_by, inst, 'set_can_approve', jsonb_build_object('user_id', p_user, 'can_approve', p_flag));
+END $$;
+
+CREATE OR REPLACE FUNCTION admin_reset_password(p_by integer, p_user integer, p_new text)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
+DECLARE inst integer;
+BEGIN
+  inst := require_admin(p_by);
+  PERFORM admin_target(inst, p_user);
+  PERFORM check_password(p_new);
+  INSERT INTO app_credentials (user_id, password_hash, must_change) VALUES (p_user, crypt(p_new, gen_salt('bf')), true)
+  ON CONFLICT (user_id) DO UPDATE SET password_hash = EXCLUDED.password_hash, must_change = true;
+  PERFORM admin_log(p_by, inst, 'reset_password', jsonb_build_object('user_id', p_user));
+END $$;
+
+-- Any signed-in user changes their own password; the old one must be right, the new one must obey the rule and differ.
+CREATE OR REPLACE FUNCTION change_password(p_by integer, p_old text, p_new text)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
+BEGIN
+  PERFORM require_user(p_by);
+  IF NOT EXISTS (SELECT 1 FROM app_credentials WHERE user_id = p_by AND password_hash = crypt(p_old, password_hash)) THEN
+    RAISE EXCEPTION 'the current password is wrong'; END IF;
+  PERFORM check_password(p_new);
+  IF p_new = p_old THEN RAISE EXCEPTION 'the new password must differ from the old one'; END IF;
+  UPDATE app_credentials SET password_hash = crypt(p_new, gen_salt('bf')), must_change = false WHERE user_id = p_by;
+END $$;
+
+CREATE OR REPLACE FUNCTION set_email_notify(p_by integer, p_flag boolean)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
+BEGIN
+  PERFORM require_user(p_by);
+  UPDATE users SET email_notify = p_flag WHERE user_id = p_by;
+END $$;
+
+CREATE OR REPLACE FUNCTION admin_create_course(p_by integer, p_code text, p_title text, p_credits integer, p_semester integer, p_faculty integer)
+RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
+DECLARE inst integer; t users%ROWTYPE; cid integer;
+BEGIN
+  inst := require_admin(p_by);
+  t := admin_target(inst, p_faculty);
+  IF t.role <> 'faculty' OR NOT t.active THEN RAISE EXCEPTION 'the course needs an active faculty member'; END IF;
+  IF coalesce(btrim(p_code), '') = '' OR coalesce(btrim(p_title), '') = '' THEN RAISE EXCEPTION 'course code and title are required'; END IF;
+  BEGIN
+    INSERT INTO courses (course_code, title, credits, semester, faculty_id, institution_id)
+    VALUES (btrim(p_code), btrim(p_title), p_credits, p_semester, p_faculty, inst) RETURNING course_id INTO cid;
+  EXCEPTION WHEN unique_violation THEN RAISE EXCEPTION 'course % already exists for semester %', p_code, p_semester;
+            WHEN check_violation THEN RAISE EXCEPTION 'credits must be 1-6 and semester 1-8';
+  END;
+  PERFORM admin_log(p_by, inst, 'create_course', jsonb_build_object('course_id', cid, 'code', btrim(p_code), 'faculty_id', p_faculty));
+  RETURN cid;
+END $$;
+
+CREATE OR REPLACE FUNCTION admin_set_course_faculty(p_by integer, p_course integer, p_faculty integer)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
+DECLARE inst integer; t users%ROWTYPE; old integer;
+BEGIN
+  inst := require_admin(p_by);
+  SELECT faculty_id INTO old FROM courses WHERE course_id = p_course AND institution_id = inst;
+  IF NOT FOUND THEN RAISE EXCEPTION 'no such course in your institution'; END IF;
+  t := admin_target(inst, p_faculty);
+  IF t.role <> 'faculty' OR NOT t.active THEN RAISE EXCEPTION 'the course needs an active faculty member'; END IF;
+  UPDATE courses SET faculty_id = p_faculty WHERE course_id = p_course;
+  PERFORM admin_log(p_by, inst, 'set_course_faculty', jsonb_build_object('course_id', p_course, 'from', old, 'to', p_faculty));
+END $$;
+
+-- Creates or updates one assessment of a course (max marks and freeze time). Past marks must still fit the new maximum.
+CREATE OR REPLACE FUNCTION admin_set_assessment(p_by integer, p_course integer, p_type text, p_max numeric, p_freeze timestamptz)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
+DECLARE inst integer; old assessments%ROWTYPE;
+BEGIN
+  inst := require_admin(p_by);
+  IF NOT EXISTS (SELECT 1 FROM courses WHERE course_id = p_course AND institution_id = inst) THEN RAISE EXCEPTION 'no such course in your institution'; END IF;
+  IF p_type NOT IN ('CIE-1', 'CIE-2', 'SEE') THEN RAISE EXCEPTION 'assessment type must be CIE-1, CIE-2 or SEE'; END IF;
+  IF p_max IS NULL OR p_max <= 0 OR p_freeze IS NULL THEN RAISE EXCEPTION 'max marks (> 0) and a freeze time are required'; END IF;
+  SELECT * INTO old FROM assessments WHERE course_id = p_course AND type = p_type;
+  IF FOUND AND EXISTS (SELECT 1 FROM marks WHERE course_id = p_course AND assessment_type = p_type AND current_value > p_max) THEN
+    RAISE EXCEPTION 'existing marks exceed the new maximum of %', p_max; END IF;
+  INSERT INTO assessments (course_id, type, max_marks, freeze_at) VALUES (p_course, p_type, p_max, p_freeze)
+  ON CONFLICT (course_id, type) DO UPDATE SET max_marks = EXCLUDED.max_marks, freeze_at = EXCLUDED.freeze_at;
+  PERFORM admin_log(p_by, inst, CASE WHEN old.course_id IS NULL THEN 'create_assessment' ELSE 'update_assessment' END,
+    jsonb_build_object('course_id', p_course, 'type', p_type, 'max_marks', p_max, 'freeze_at', p_freeze,
+                       'old_max_marks', old.max_marks, 'old_freeze_at', old.freeze_at));
+END $$;
+
+-- One empty mark per assessment for every listed student (already enrolled students are skipped). Returns the marks created.
+CREATE OR REPLACE FUNCTION admin_enroll(p_by integer, p_course integer, p_students integer[])
+RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
+DECLARE inst integer; s integer; n integer := 0; k integer;
+BEGIN
+  inst := require_admin(p_by);
+  IF NOT EXISTS (SELECT 1 FROM courses WHERE course_id = p_course AND institution_id = inst) THEN RAISE EXCEPTION 'no such course in your institution'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM assessments WHERE course_id = p_course) THEN RAISE EXCEPTION 'add at least one assessment before enrolling students'; END IF;
+  FOREACH s IN ARRAY coalesce(p_students, ARRAY[]::integer[]) LOOP
+    IF NOT EXISTS (SELECT 1 FROM users WHERE user_id = s AND institution_id = inst AND role = 'student' AND active) THEN
+      RAISE EXCEPTION 'student % is not an active student of your institution', s; END IF;
+    INSERT INTO marks (student_id, course_id, assessment_type)
+    SELECT s, p_course, a.type FROM assessments a WHERE a.course_id = p_course
+    ON CONFLICT (student_id, course_id, assessment_type) DO NOTHING;
+    GET DIAGNOSTICS k = ROW_COUNT; n := n + k;
+  END LOOP;
+  PERFORM admin_log(p_by, inst, 'enroll', jsonb_build_object('course_id', p_course, 'students', p_students, 'marks_created', n));
+  RETURN n;
+END $$;
+
+GRANT EXECUTE ON FUNCTION admin_create_user(integer, text, text, text, text, text, text, integer, text, text, boolean),
+  admin_set_active(integer, integer, boolean), admin_set_can_approve(integer, integer, boolean), admin_reset_password(integer, integer, text),
+  change_password(integer, text, text), set_email_notify(integer, boolean), admin_create_course(integer, text, text, integer, integer, integer),
+  admin_set_course_faculty(integer, integer, integer), admin_set_assessment(integer, integer, text, numeric, timestamptz),
+  admin_enroll(integer, integer, integer[]) TO veritas_app;

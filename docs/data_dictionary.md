@@ -1,6 +1,17 @@
 # Veritas data dictionary
 
-_Generated from the live schema (24 Oct 2026); regenerate with `python docs/make_docs.py`._
+_Generated from the live schema (03 Nov 2026); regenerate with `python docs/make_docs.py`._
+
+## admin_actions
+
+| column | type | null | default | key |
+|---|---|---|---|---|
+| action_id | bigint | no |  | PK |
+| admin_id | integer | no |  | FK to users.user_id |
+| institution_id | integer | no |  | FK to institutions.institution_id |
+| action | text | no |  |  |
+| detail | jsonb | no | '{}'::jsonb |  |
+| at | timestamp with time zone | no | now() |  |
 
 ## anchors
 
@@ -34,6 +45,7 @@ _Generated from the live schema (24 Oct 2026); regenerate with `python docs/make
 |---|---|---|---|---|
 | user_id | integer | no |  | PK |
 | password_hash | text | no |  |  |
+| must_change | boolean | no | false |  |
 
 ## assessments
 
@@ -43,8 +55,8 @@ _Generated from the live schema (24 Oct 2026); regenerate with `python docs/make
 | type | text | no |  | PK |
 | max_marks | numeric | no |  |  |
 | freeze_at | timestamp with time zone | no |  |  |
-- check: `CHECK ((type = ANY (ARRAY['CIE-1'::text, 'CIE-2'::text, 'SEE'::text])))`
 - check: `CHECK ((max_marks > (0)::numeric))`
+- check: `CHECK ((type = ANY (ARRAY['CIE-1'::text, 'CIE-2'::text, 'SEE'::text])))`
 
 ## certificate_documents
 
@@ -68,8 +80,8 @@ _Generated from the live schema (24 Oct 2026); regenerate with `python docs/make
 | status | text | no | 'valid'::text |  |
 | issued_at | timestamp with time zone | no | now() |  |
 | revoked_at | timestamp with time zone | yes |  |  |
-- check: `CHECK ((status = ANY (ARRAY['valid'::text, 'revoked'::text])))`
 - check: `CHECK (((status = 'valid'::text) = (revoked_at IS NULL)))`
+- check: `CHECK ((status = ANY (ARRAY['valid'::text, 'revoked'::text])))`
 
 ## change_requests
 
@@ -84,11 +96,11 @@ _Generated from the live schema (24 Oct 2026); regenerate with `python docs/make
 | status | text | no | 'pending'::text |  |
 | requested_at | timestamp with time zone | no | now() |  |
 | decided_at | timestamp with time zone | yes |  |  |
-- check: `CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text, 'applied'::text])))`
 - check: `CHECK (((approved_by IS NULL) OR (approved_by <> requested_by)))`
 - check: `CHECK ((((status = 'pending'::text) AND (approved_by IS NULL) AND (decided_at IS NULL)) OR ((status <> 'pending'::text) AND (approved_by IS NOT NULL) AND (decid`
 - check: `CHECK ((proposed_value >= (0)::numeric))`
 - check: `CHECK ((length(btrim(reason)) >= 5))`
+- check: `CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text, 'applied'::text])))`
 
 ## courses
 
@@ -103,8 +115,8 @@ _Generated from the live schema (24 Oct 2026); regenerate with `python docs/make
 | institution_id | integer | no | 1 | FK to institutions.institution_id |
 
 - unique: `UNIQUE (course_code, semester)`
-- check: `CHECK (((semester >= 1) AND (semester <= 8)))`
 - check: `CHECK (((credits >= 1) AND (credits <= 6)))`
+- check: `CHECK (((semester >= 1) AND (semester <= 8)))`
 
 ## faculty
 
@@ -210,6 +222,7 @@ _Generated from the live schema (24 Oct 2026); regenerate with `python docs/make
 | link | text | yes |  |  |
 | created_at | timestamp with time zone | no | now() |  |
 | read_at | timestamp with time zone | yes |  |  |
+| emailed_at | timestamp with time zone | yes |  |  |
 
 ## students
 
@@ -233,6 +246,8 @@ _Generated from the live schema (24 Oct 2026); regenerate with `python docs/make
 | role | text | no |  |  |
 | created_at | timestamp with time zone | no | now() |  |
 | institution_id | integer | no | 1 | FK to institutions.institution_id |
+| active | boolean | no | true |  |
+| email_notify | boolean | no | true |  |
 
 - unique: `UNIQUE (email)`
 - check: `CHECK ((role = ANY (ARRAY['student'::text, 'faculty'::text, 'admin'::text])))`

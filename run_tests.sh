@@ -2,7 +2,7 @@
 # Usage: PGHOST=... PGPORT=... PGUSER=postgres ./run_tests.sh
 # Rebuilds two scratch databases (default veritas_test and veritas_test_app) and never touches the real "veritas" one.
 #   1. veritas_test      schema + seed, then the base ledger suite (tests.sql, 84 tests)
-#   2. veritas_test_app  schema + seed + application layer (installed twice: it must be idempotent), then tests_app.sql (25 tests)
+#   2. veritas_test_app  schema + seed + application layer (installed twice: it must be idempotent), then tests_app.sql (42 tests)
 set -euo pipefail
 cd "$(dirname "$0")"
 DB="${VERITAS_TEST_DB:-veritas_test}"

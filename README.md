@@ -50,7 +50,7 @@ Configuration (environment): `SESSION_SECRET`, `SESSION_HTTPS=1`, `WITNESS_TYPE=
 ## Tests (all pass)
 ```bash
 export PGHOST=127.0.0.1 PGUSER=postgres PGPASSWORD=postgres      # psql on PATH
-bash run_tests.sh              # 84 ledger tests + 25 application-layer tests (scratch databases)
+bash run_tests.sh              # 84 ledger tests + 42 application-layer tests (scratch databases)
 python python_tests.py         # 11 independent cross-checks and attacks
 python concurrency_test.py     # 3
 python api_tests.py            # 32 API end-to-end tests (own database, own API on :8100)

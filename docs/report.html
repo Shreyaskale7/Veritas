@@ -9,20 +9,26 @@ tr { break-inside: avoid } .sub { color: #475569 } svg { width: 100%; height: au
 ul.rel { columns: 2; font-size: 9pt; padding-left: 16px } .pb { break-before: page }
 </style></head><body>
 <div class="cover"><h1>Veritas</h1><div style="font-size:14pt">Tamper-evident marks and certificate ledger on PostgreSQL</div>
-<div class="sub" style="margin-top:10px">Database Management Systems (CD252IA), RV College of Engineering &nbsp;|&nbsp; generated 24 October 2026</div></div>
+<div class="sub" style="margin-top:10px">Database Management Systems (CD252IA), RV College of Engineering &nbsp;|&nbsp; generated 03 November 2026</div></div>
 
 <h2>1. Problem and approach</h2>
 <p>Marks and certificates are changed after the fact, quietly. Veritas makes that detectable and mostly impossible <b>inside the database</b>:
 the rules live in triggers, constraints and row-level security, so no application bug, direct SQL session or clever client can skip them. Every mark
 write is an append-only, hash-chained revision; revisions are sealed into Merkle batches whose roots are pinned in an external witness;
 certificates store only a salted hash and verify publicly with a QR code.</p>
-<p><span class="pill">18 tables</span><span class="pill">109 columns</span><span class="pill">30 triggers</span><span class="pill">row-level security</span><span class="pill">hash chain</span><span class="pill">Merkle tree</span><span class="pill">PostgreSQL 16</span><span class="pill">FastAPI</span><span class="pill">React</span></p>
+<p><span class="pill">19 tables</span><span class="pill">119 columns</span><span class="pill">32 triggers</span><span class="pill">row-level security</span><span class="pill">hash chain</span><span class="pill">Merkle tree</span><span class="pill">PostgreSQL 16</span><span class="pill">FastAPI</span><span class="pill">React</span></p>
 
 <h2>2. Entity-relationship diagram</h2>
 <p class="sub">Generated from the live schema. Arrows point from the referencing table (N) to the referenced table (1). Pink: the tamper-evidence tables; blue: the marks workflow.</p>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1480 788" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11.5">
 <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#6366f1"/></marker></defs>
 <rect width="1480" height="788" fill="#ffffff"/>
+<line x1="1214" y1="91" x2="266" y2="71" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="1100" y="86" fill="#444" font-size="10">N</text>
+<text x="380" y="70" fill="#444" font-size="10">1</text>
+<line x1="1214" y1="94" x2="562" y2="94" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="1136" y="91" fill="#444" font-size="10">N</text>
+<text x="640" y="91" fill="#444" font-size="10">1</text>
 <line x1="562" y1="472" x2="622" y2="474" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
 <text x="569" y="469" fill="#444" font-size="10">N</text>
 <text x="615" y="470" fill="#444" font-size="10">1</text>
@@ -32,27 +38,27 @@ certificates store only a salted hash and verify publicly with a QR code.</p>
 <line x1="1214" y1="489" x2="1154" y2="491" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
 <text x="1207" y="486" fill="#444" font-size="10">N</text>
 <text x="1161" y="487" fill="#444" font-size="10">1</text>
-<line x1="1214" y1="238" x2="562" y2="116" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
-<text x="1136" y="220" fill="#444" font-size="10">N</text>
-<text x="640" y="128" fill="#444" font-size="10">1</text>
+<line x1="1214" y1="245" x2="562" y2="117" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="1136" y="227" fill="#444" font-size="10">N</text>
+<text x="640" y="130" fill="#444" font-size="10">1</text>
 <line x1="622" y1="287" x2="562" y2="292" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
 <text x="615" y="285" fill="#444" font-size="10">N</text>
 <text x="569" y="289" fill="#444" font-size="10">1</text>
 <line x1="326" y1="670" x2="266" y2="675" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
 <text x="319" y="668" fill="#444" font-size="10">N</text>
 <text x="273" y="672" fill="#444" font-size="10">1</text>
-<line x1="148" y1="613" x2="148" y2="324" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
-<text x="148" y="575" fill="#444" font-size="10">N</text>
-<text x="148" y="356" fill="#444" font-size="10">1</text>
 <line x1="219" y1="613" x2="694" y2="124" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
 <text x="276" y="551" fill="#444" font-size="10">N</text>
 <text x="637" y="180" fill="#444" font-size="10">1</text>
-<line x1="918" y1="133" x2="266" y2="255" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
-<text x="840" y="145" fill="#444" font-size="10">N</text>
-<text x="344" y="237" fill="#444" font-size="10">1</text>
+<line x1="148" y1="613" x2="148" y2="324" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="148" y="575" fill="#444" font-size="10">N</text>
+<text x="148" y="356" fill="#444" font-size="10">1</text>
 <line x1="1036" y1="192" x2="1036" y2="230" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
 <text x="1036" y="194" fill="#444" font-size="10">N</text>
 <text x="1036" y="222" fill="#444" font-size="10">1</text>
+<line x1="918" y1="133" x2="266" y2="255" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="840" y="145" fill="#444" font-size="10">N</text>
+<text x="344" y="237" fill="#444" font-size="10">1</text>
 <line x1="918" y1="133" x2="266" y2="255" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
 <text x="840" y="145" fill="#444" font-size="10">N</text>
 <text x="344" y="237" fill="#444" font-size="10">1</text>
@@ -65,24 +71,24 @@ certificates store only a salted hash and verify publicly with a QR code.</p>
 <line x1="224" y1="230" x2="340" y2="158" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
 <text x="238" y="218" fill="#444" font-size="10">N</text>
 <text x="327" y="164" fill="#444" font-size="10">1</text>
-<line x1="1036" y1="413" x2="1036" y2="375" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
-<text x="1036" y="405" fill="#444" font-size="10">N</text>
-<text x="1036" y="377" fill="#444" font-size="10">1</text>
 <line x1="918" y1="456" x2="562" y2="341" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
 <text x="875" y="439" fill="#444" font-size="10">N</text>
 <text x="605" y="351" fill="#444" font-size="10">1</text>
+<line x1="1036" y1="413" x2="1036" y2="375" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="1036" y="405" fill="#444" font-size="10">N</text>
+<text x="1036" y="377" fill="#444" font-size="10">1</text>
 <line x1="1036" y1="413" x2="1036" y2="192" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
 <text x="1036" y="383" fill="#444" font-size="10">N</text>
 <text x="1036" y="216" fill="#444" font-size="10">1</text>
 <line x1="918" y1="465" x2="266" y2="306" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
 <text x="840" y="443" fill="#444" font-size="10">N</text>
 <text x="344" y="322" fill="#444" font-size="10">1</text>
-<line x1="941" y1="230" x2="802" y2="124" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
-<text x="924" y="214" fill="#444" font-size="10">N</text>
-<text x="818" y="134" fill="#444" font-size="10">1</text>
 <line x1="918" y1="292" x2="858" y2="287" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
 <text x="911" y="289" fill="#444" font-size="10">N</text>
 <text x="865" y="285" fill="#444" font-size="10">1</text>
+<line x1="941" y1="230" x2="802" y2="124" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
+<text x="924" y="214" fill="#444" font-size="10">N</text>
+<text x="818" y="134" fill="#444" font-size="10">1</text>
 <line x1="631" y1="413" x2="562" y2="372" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
 <text x="623" y="405" fill="#444" font-size="10">N</text>
 <text x="570" y="374" fill="#444" font-size="10">1</text>
@@ -95,6 +101,27 @@ certificates store only a salted hash and verify publicly with a QR code.</p>
 <line x1="326" y1="84" x2="266" y2="79" stroke="#6366f1" stroke-width="1.3" marker-end="url(#a)" opacity=".75"/>
 <text x="319" y="80" fill="#444" font-size="10">N</text>
 <text x="273" y="76" fill="#444" font-size="10">1</text>
+<rect x="1214" y="30" width="236" height="128" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+<rect x="1214" y="30" width="236" height="26" rx="6" fill="#1e293b"/><rect x="1214" y="42" width="236" height="14" fill="#1e293b"/>
+<text x="1224" y="48" fill="#fff" font-weight="700" font-size="13">admin_actions</text>
+<text x="1222" y="69" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
+<text x="1244" y="69" fill="#111" font-weight="700">action_id</text>
+<text x="1442" y="69" fill="#64748b" text-anchor="end" font-size="10">bigint</text>
+<text x="1222" y="86" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="1244" y="86" fill="#111">admin_id</text>
+<text x="1442" y="86" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="1222" y="103" fill="#6366f1" font-size="9.5" font-weight="700">FK</text>
+<text x="1244" y="103" fill="#111">institution_id</text>
+<text x="1442" y="103" fill="#64748b" text-anchor="end" font-size="10">integer</text>
+<text x="1222" y="120" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="1244" y="120" fill="#111">action</text>
+<text x="1442" y="120" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="1222" y="137" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="1244" y="137" fill="#111">detail</text>
+<text x="1442" y="137" fill="#64748b" text-anchor="end" font-size="10">jsonb</text>
+<text x="1222" y="154" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="1244" y="154" fill="#111">at</text>
+<text x="1442" y="154" fill="#64748b" text-anchor="end" font-size="10">timestamptz</text>
 <rect x="326" y="413" width="236" height="111" rx="6" fill="#fdf2f8" stroke="#94a3b8"/>
 <rect x="326" y="413" width="236" height="26" rx="6" fill="#1e293b"/><rect x="326" y="425" width="236" height="14" fill="#1e293b"/>
 <text x="336" y="431" fill="#fff" font-weight="700" font-size="13">anchors</text>
@@ -137,7 +164,7 @@ certificates store only a salted hash and verify publicly with a QR code.</p>
 <text x="1222" y="554" fill="#6366f1" font-size="9.5" font-weight="700"></text>
 <text x="1244" y="554" fill="#111">…</text>
 <text x="1442" y="554" fill="#64748b" text-anchor="end" font-size="10"></text>
-<rect x="1214" y="230" width="236" height="60" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+<rect x="1214" y="230" width="236" height="77" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
 <rect x="1214" y="230" width="236" height="26" rx="6" fill="#1e293b"/><rect x="1214" y="242" width="236" height="14" fill="#1e293b"/>
 <text x="1224" y="248" fill="#fff" font-weight="700" font-size="13">app_credentials</text>
 <text x="1222" y="269" fill="#6366f1" font-size="9.5" font-weight="700">PK</text>
@@ -146,6 +173,9 @@ certificates store only a salted hash and verify publicly with a QR code.</p>
 <text x="1222" y="286" fill="#6366f1" font-size="9.5" font-weight="700"></text>
 <text x="1244" y="286" fill="#111">password_hash</text>
 <text x="1442" y="286" fill="#64748b" text-anchor="end" font-size="10">text</text>
+<text x="1222" y="303" fill="#6366f1" font-size="9.5" font-weight="700"></text>
+<text x="1244" y="303" fill="#111">must_change</text>
+<text x="1442" y="303" fill="#64748b" text-anchor="end" font-size="10">boolean</text>
 <rect x="622" y="230" width="236" height="94" rx="6" fill="#eef2ff" stroke="#94a3b8"/>
 <rect x="622" y="230" width="236" height="26" rx="6" fill="#1e293b"/><rect x="622" y="242" width="236" height="14" fill="#1e293b"/>
 <text x="632" y="248" fill="#fff" font-weight="700" font-size="13">assessments</text>
@@ -446,7 +476,7 @@ certificates store only a salted hash and verify publicly with a QR code.</p>
 </svg>
 
 <h2 class="pb">3. Relational schema</h2>
-<ul class="rel"><li><b>anchors</b>(<u>anchor_id</u>, batch_id, anchor_type, anchor_ref, anchored_at)</li><li><b>anomaly_alerts</b>(<u>alert_id</u>, revision_id, reviewed_by, model_name, score, top_features, status, created_at, reviewed_at)</li><li><b>app_credentials</b>(<u>user_id</u>, password_hash)</li><li><b>assessments</b>(<u>course_id</u>, <u>type</u>, max_marks, freeze_at)</li><li><b>certificate_documents</b>(<u>cert_id</u>, mime, doc, created_at)</li><li><b>certificates</b>(<u>cert_id</u>, student_id, issued_by, cert_type, doc_hash, salt, status, issued_at, revoked_at)</li><li><b>change_requests</b>(<u>request_id</u>, mark_id, requested_by, approved_by, proposed_value, reason, status, requested_at, decided_at)</li><li><b>courses</b>(<u>course_id</u>, course_code, title, credits, semester, faculty_id, institution_id)</li><li><b>faculty</b>(<u>user_id</u>, employee_id, department, can_approve)</li><li><b>institutions</b>(<u>institution_id</u>, slug, name)</li><li><b>integrity_runs</b>(<u>run_id</u>, kind, ok, detail, started_at)</li><li><b>login_attempts</b>(<u>attempt_id</u>, email, ip, ok, at)</li><li><b>mark_revisions</b>(<u>revision_id</u>, mark_id, course_id, seq, request_id, prev_revision_id, old_value, new_value, changed_by, reason, changed_at, prev_hash, row_hash)</li><li><b>marks</b>(<u>mark_id</u>, student_id, course_id, assessment_type, current_value, version, updated_at)</li><li><b>merkle_batches</b>(<u>batch_id</u>, course_id, seq_from, seq_to, merkle_root, created_at)</li><li><b>notifications</b>(<u>notification_id</u>, user_id, kind, message, link, created_at, read_at)</li><li><b>students</b>(<u>user_id</u>, usn, branch, semester)</li><li><b>users</b>(<u>user_id</u>, name, email, role, created_at, institution_id)</li></ul>
+<ul class="rel"><li><b>admin_actions</b>(<u>action_id</u>, admin_id, institution_id, action, detail, at)</li><li><b>anchors</b>(<u>anchor_id</u>, batch_id, anchor_type, anchor_ref, anchored_at)</li><li><b>anomaly_alerts</b>(<u>alert_id</u>, revision_id, reviewed_by, model_name, score, top_features, status, created_at, reviewed_at)</li><li><b>app_credentials</b>(<u>user_id</u>, password_hash, must_change)</li><li><b>assessments</b>(<u>course_id</u>, <u>type</u>, max_marks, freeze_at)</li><li><b>certificate_documents</b>(<u>cert_id</u>, mime, doc, created_at)</li><li><b>certificates</b>(<u>cert_id</u>, student_id, issued_by, cert_type, doc_hash, salt, status, issued_at, revoked_at)</li><li><b>change_requests</b>(<u>request_id</u>, mark_id, requested_by, approved_by, proposed_value, reason, status, requested_at, decided_at)</li><li><b>courses</b>(<u>course_id</u>, course_code, title, credits, semester, faculty_id, institution_id)</li><li><b>faculty</b>(<u>user_id</u>, employee_id, department, can_approve)</li><li><b>institutions</b>(<u>institution_id</u>, slug, name)</li><li><b>integrity_runs</b>(<u>run_id</u>, kind, ok, detail, started_at)</li><li><b>login_attempts</b>(<u>attempt_id</u>, email, ip, ok, at)</li><li><b>mark_revisions</b>(<u>revision_id</u>, mark_id, course_id, seq, request_id, prev_revision_id, old_value, new_value, changed_by, reason, changed_at, prev_hash, row_hash)</li><li><b>marks</b>(<u>mark_id</u>, student_id, course_id, assessment_type, current_value, version, updated_at)</li><li><b>merkle_batches</b>(<u>batch_id</u>, course_id, seq_from, seq_to, merkle_root, created_at)</li><li><b>notifications</b>(<u>notification_id</u>, user_id, kind, message, link, created_at, read_at, emailed_at)</li><li><b>students</b>(<u>user_id</u>, usn, branch, semester)</li><li><b>users</b>(<u>user_id</u>, name, email, role, created_at, institution_id, active, email_notify)</li></ul>
 <p class="sub">Underlined = primary key. The full data dictionary (types, defaults, constraints) is in <code>docs/data_dictionary.md</code>.</p>
 
 <h2>4. Normalisation</h2>
@@ -504,7 +534,7 @@ certificates store only a salted hash and verify publicly with a QR code.</p>
 <table><tr><th>Area</th><th>What it does</th></tr><tr><td>Marks workflow</td><td>Entry, optimistic version check, freeze, change request, checker approval, apply with request id; CSV bulk import and export</td></tr><tr><td>Integrity</td><td>Seal Merkle batches, anchor roots to a git-backed witness (push to a remote for real separation), inclusion proofs, scheduled verification, alerts to admins by notification, webhook and e-mail</td></tr><tr><td>Anomaly detection</td><td>IsolationForest plus rules over revision features; alerts explain why they fired and are triaged by a checker; model version is recorded</td></tr><tr><td>Certificates</td><td>Issue custom certificates or ledger-built transcripts; PDF with scan-to-verify QR stored write-once; public verifier works from the QR alone</td></tr><tr><td>Selective disclosure</td><td>A student exports a proof of one revision (fields, Merkle path, witness record); verify_disclosure.py checks it offline without revealing other marks</td></tr><tr><td>Security</td><td>Login throttling, per-session CSRF token, random session secret, optional HTTPS-only cookies; Caddy gives automatic TLS in the Docker stack</td></tr><tr><td>Operations</td><td>backup_restore.py backs up only a verified ledger and proves each restore; Docker Compose stack; GitHub Actions CI</td></tr><tr><td>Multi-institution</td><td>Every user and course belongs to an institution. Restrictive row-level-security policies isolate every table per institution; triggers refuse a course, faculty member or student from different institutions; admin dashboards, directory, sealing, anchoring, transcripts, alerts and notifications are scoped; the scheduler verifies each institution separately</td></tr></table>
 
 <h2>9. Test summary</h2>
-<table><tr><th>Suite</th><th>Tests</th></tr><tr><td>Ledger suite (SQL)</td><td>84</td></tr><tr><td>Application-layer suite (SQL, incl. multi-institution isolation)</td><td>25</td></tr><tr><td>Python cross-checks and attacks</td><td>11</td></tr><tr><td>Concurrency</td><td>3</td></tr><tr><td>API end-to-end (incl. isolation and race checks)</td><td>32</td></tr><tr><td>Backup / restore</td><td>6</td></tr><tr><td>Browser end-to-end (Chrome)</td><td>12</td></tr><tr><td><b>Total</b></td><td><b>173</b></td></tr></table>
+<table><tr><th>Suite</th><th>Tests</th></tr><tr><td>Ledger suite (SQL)</td><td>84</td></tr><tr><td>Application-layer suite (SQL, incl. isolation and administration)</td><td>42</td></tr><tr><td>Python cross-checks and attacks</td><td>11</td></tr><tr><td>Concurrency</td><td>3</td></tr><tr><td>API end-to-end (incl. isolation and race checks)</td><td>32</td></tr><tr><td>Backup / restore</td><td>6</td></tr><tr><td>Browser end-to-end (Chrome)</td><td>12</td></tr><tr><td><b>Total</b></td><td><b>190</b></td></tr></table>
 
 <h2>10. Limits and future work</h2>
 <ul><li>The witness is only outside the administrator's reach if it is pushed to a remote they do not control; on one machine it is tamper-evident, not tamper-proof. The immudb backend is written but untested.</li>

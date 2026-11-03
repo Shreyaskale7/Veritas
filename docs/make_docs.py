@@ -189,7 +189,7 @@ THREATS = [
     ("Read or alter another institution's data", "Restrictive RLS policies on every table; mixed-institution rows are refused by triggers", "AX18-AX23, API I04-I10"),
     ("Verifier races an anchor and raises a false alarm", "One lock serialises witness writes and checks", "API W05"),
 ]
-TESTS = [("Ledger suite (SQL)", 84), ("Application-layer suite (SQL, incl. multi-institution isolation)", 25), ("Python cross-checks and attacks", 11), ("Concurrency", 3),
+TESTS = [("Ledger suite (SQL)", 84), ("Application-layer suite (SQL, incl. isolation and administration)", 42), ("Python cross-checks and attacks", 11), ("Concurrency", 3),
          ("API end-to-end (incl. isolation and race checks)", 32), ("Backup / restore", 6), ("Browser end-to-end (Chrome)", 12)]
 
 

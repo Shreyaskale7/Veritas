@@ -164,6 +164,124 @@ BEGIN
     ta.q_as(5, 'select count(*) from marks')::int > 0 AND ta.q_as(1, 'select count(*) from users')::int = 7 AND ta.q_as(4, 'select count(*) from marks')::int > 0);
 END $$;
 
+-- F2. administration: people, courses, assessments, enrolment, passwords, audit log ---------------------------------
+DO $$
+DECLARE a2 integer; i2 integer; uid text; cid text; n text; hash_before text;
+  e1 text; e2 text; e3 text; r1 text; r2 text; r3 text; r4 text; f1 boolean; f2 boolean; f3 boolean; n_log bigint; n_pw bigint;
+BEGIN
+  SELECT user_id, institution_id INTO a2, i2 FROM users WHERE email = 'admin@beta.example';
+
+  -- people
+  uid := ta.q_as(1, 'select admin_create_user(1, ''New Student'', ''New.Student@RVCE.example'', ''student'', ''Temporary123'', ''1RV24CD099'', ''CSE'', 3)::text');
+  PERFORM ta.put('new_student', uid);
+  PERFORM ta.rec('AX26', 'An administrator creates a student: lower-cased e-mail, own institution, temporary password that must be changed',
+    uid ~ '^[0-9]+$' AND (SELECT email FROM users WHERE user_id = uid::int) = 'new.student@rvce.example'
+    AND (SELECT institution_id FROM users WHERE user_id = uid::int) = 1 AND (SELECT must_change FROM app_credentials WHERE user_id = uid::int)
+    AND (SELECT usn FROM students WHERE user_id = uid::int) = '1RV24CD099', uid);
+  PERFORM ta.rec('AX27', 'Only administrators may create people; an administrator of another institution cannot touch this one',
+    ta.q_as(3, 'select admin_create_user(3, ''X'', ''x@x.example'', ''student'', ''Temporary123'', ''U1'', ''CSE'', 3)::text') LIKE 'ERROR%administrators only%'
+    AND ta.q_as(5, 'select admin_create_user(5, ''X'', ''x@x.example'', ''admin'', ''Temporary123'')::text') LIKE 'ERROR%administrators only%'
+    AND ta.q_as(a2, format('select admin_reset_password(%s, 5, ''Whatever12345'')::text', a2)) LIKE 'ERROR%no such person%'
+    AND ta.q_as(a2, format('select admin_set_active(%s, 5, false)::text', a2)) LIKE 'ERROR%no such person%'
+    AND ta.q_as(a2, format('select admin_set_can_approve(%s, 3, true)::text', a2)) LIKE 'ERROR%no such person%');
+  PERFORM ta.rec('AX28', 'Bad input is refused: duplicate e-mail, weak password, bad role, missing student fields',
+    ta.q_as(1, 'select admin_create_user(1, ''Dup'', ''asha@rvce.example'', ''student'', ''Temporary123'', ''U2'', ''CSE'', 3)::text') LIKE 'ERROR%already registered%'
+    AND ta.q_as(1, 'select admin_create_user(1, ''W'', ''w@x.example'', ''student'', ''short1'', ''U3'', ''CSE'', 3)::text') LIKE 'ERROR%at least 10%'
+    AND ta.q_as(1, 'select admin_create_user(1, ''W'', ''w@x.example'', ''student'', ''onlyletterspassword'', ''U3'', ''CSE'', 3)::text') LIKE 'ERROR%letter and a digit%'
+    AND ta.q_as(1, 'select admin_create_user(1, ''W'', ''w@x.example'', ''wizard'', ''Temporary123'')::text') LIKE 'ERROR%role must be%'
+    AND ta.q_as(1, 'select admin_create_user(1, ''W'', ''w@x.example'', ''student'', ''Temporary123'')::text') LIKE 'ERROR%needs usn%'
+    AND ta.q_as(1, 'select admin_create_user(1, ''W'', ''notanemail'', ''admin'', ''Temporary123'')::text') LIKE 'ERROR%valid e-mail%'
+    AND ta.q_as(1, 'select admin_create_user(1, ''W'', ''w@x.example'', ''student'', ''Temporary123'', ''U4'', ''CSE'', 99)::text') LIKE 'ERROR%');
+
+  -- passwords
+  hash_before := (SELECT password_hash FROM app_credentials WHERE user_id = uid::int);
+  PERFORM ta.rec('AX29', 'change_password: wrong old password, weak new password and an unchanged password are all refused',
+    ta.q_as(uid::int, format('select change_password(%s, ''wrongpassword1'', ''Brand-new-pass1'')::text', uid)) LIKE 'ERROR%current password is wrong%'
+    AND ta.q_as(uid::int, format('select change_password(%s, ''Temporary123'', ''short'')::text', uid)) LIKE 'ERROR%at least 10%'
+    AND ta.q_as(uid::int, format('select change_password(%s, ''Temporary123'', ''Temporary123'')::text', uid)) LIKE 'ERROR%must differ%'
+    AND ta.q_as(5, format('select change_password(%s, ''Temporary123'', ''Another-pass1'')::text', uid)) LIKE 'ERROR%'          -- acting as someone else
+    AND (SELECT password_hash FROM app_credentials WHERE user_id = uid::int) = hash_before);
+  PERFORM ta.q_as(uid::int, format('select change_password(%s, ''Temporary123'', ''Brand-new-pass1'')::text', uid));
+  PERFORM ta.rec('AX30', 'A successful change stores a new bcrypt hash and ends the forced change',
+    (SELECT password_hash <> hash_before AND password_hash = crypt('Brand-new-pass1', password_hash) AND password_hash LIKE '$2%' AND NOT must_change
+       FROM app_credentials WHERE user_id = uid::int));
+  PERFORM ta.q_as(1, format('select admin_reset_password(1, %s, ''Reset-by-admin9'')::text', uid));
+  PERFORM ta.rec('AX31', 'An administrator reset replaces the password and forces a change at next sign-in',
+    (SELECT password_hash = crypt('Reset-by-admin9', password_hash) AND must_change FROM app_credentials WHERE user_id = uid::int));
+
+  -- activation, approvers (each step runs first, then its effect is checked: SQL does not order AND conditions)
+  e1 := ta.q_as(1, 'select admin_set_active(1, 1, false)::text');
+  e2 := ta.q_as(a2, format('select admin_set_active(%s, %s, false)::text', a2, a2));
+  r1 := ta.q_as(1, format('select admin_set_active(1, %s, false)::text', uid));
+  f1 := (SELECT active FROM users WHERE user_id = uid::int);
+  r2 := ta.q_as(1, format('select admin_set_active(1, %s, true)::text', uid));
+  f2 := (SELECT active FROM users WHERE user_id = uid::int);
+  r3 := ta.q_as(1, 'select admin_set_can_approve(1, 3, true)::text');
+  f3 := (SELECT can_approve FROM faculty WHERE user_id = 3);
+  r4 := ta.q_as(1, 'select admin_set_can_approve(1, 3, false)::text');
+  e3 := ta.q_as(1, 'select admin_set_can_approve(1, 5, true)::text');
+  PERFORM ta.rec('AX32', 'Deactivation: not yourself, not the last administrator; reversible; only faculty can be approvers',
+    e1 LIKE 'ERROR%your own account%' AND e2 LIKE 'ERROR%' AND r1 = '' AND NOT f1 AND r2 = '' AND f2 AND r3 = '' AND f3 AND r4 = '' AND e3 LIKE 'ERROR%only faculty%',
+    format('%s | %s | %s %s | %s %s | %s %s | %s | %s', e1, e2, r1, f1, r2, f2, r3, f3, r4, e3));
+  PERFORM ta.q_as(1, format('select admin_set_active(1, %s, false)::text', uid));
+  PERFORM ta.rec('AX33', 'A deactivated person is flagged inactive in the database (the API refuses their sign-in)', NOT (SELECT active FROM users WHERE user_id = uid::int));
+  PERFORM ta.q_as(1, format('select admin_set_active(1, %s, true)::text', uid));
+
+  -- courses, assessments, enrolment
+  cid := ta.q_as(1, 'select admin_create_course(1, ''CD299TA'', ''Distributed Systems'', 4, 5, 2)::text');
+  PERFORM ta.put('new_course', cid);
+  PERFORM ta.rec('AX34', 'An administrator creates a course for a faculty member of their institution; faculty from elsewhere, students and duplicates are refused',
+    cid ~ '^[0-9]+$' AND (SELECT faculty_id FROM courses WHERE course_id = cid::int) = 2
+    AND ta.q_as(1, format('select admin_create_course(1, ''X1'', ''Mixed'', 3, 3, %s)::text', (SELECT user_id FROM users WHERE email = 'hod@beta.example'))) LIKE 'ERROR%no such person%'
+    AND ta.q_as(1, 'select admin_create_course(1, ''X2'', ''Student teaches'', 3, 3, 5)::text') LIKE 'ERROR%active faculty%'
+    AND ta.q_as(1, 'select admin_create_course(1, ''CD299TA'', ''Again'', 3, 5, 2)::text') LIKE 'ERROR%already exists%'
+    AND ta.q_as(1, 'select admin_create_course(1, ''X3'', ''Bad credits'', 9, 3, 2)::text') LIKE 'ERROR%credits must be%', cid);
+  PERFORM ta.rec('AX35', 'Enrolling before any assessment exists is refused',
+    ta.q_as(1, format('select admin_enroll(1, %s, ARRAY[5])::text', cid)) LIKE 'ERROR%at least one assessment%');
+  PERFORM ta.q_as(1, format('select admin_set_assessment(1, %s, ''CIE-1'', 50, now() + interval ''30 days'')::text', cid));
+  PERFORM ta.q_as(1, format('select admin_set_assessment(1, %s, ''SEE'', 100, now() + interval ''60 days'')::text', cid));
+  e1 := ta.q_as(1, format('select admin_set_assessment(1, %s, ''CIE-1'', 40, now() + interval ''10 days'')::text', cid));
+  e2 := ta.q_as(1, format('select admin_set_assessment(1, %s, ''QUIZ'', 10, now())::text', cid));
+  e3 := ta.q_as(1, format('select admin_set_assessment(1, %s, ''CIE-2'', 0, now())::text', cid));
+  r1 := ta.q_as(a2, format('select admin_set_assessment(%s, %s, ''CIE-2'', 20, now())::text', a2, cid));
+  PERFORM ta.rec('AX36', 'Assessments are created and updated (max marks, freeze time); invalid type or maximum is refused',
+    (SELECT count(*) FROM assessments WHERE course_id = cid::int) = 2 AND e1 = ''
+    AND (SELECT max_marks FROM assessments WHERE course_id = cid::int AND type = 'CIE-1') = 40
+    AND e2 LIKE 'ERROR%CIE-1, CIE-2 or SEE%' AND e3 LIKE 'ERROR%max marks%' AND r1 LIKE 'ERROR%no such course%',
+    format('%s | %s | %s | %s', e1, e2, e3, r1));
+  n := ta.q_as(1, format('select admin_enroll(1, %s, ARRAY[5, 6])::text', cid));
+  PERFORM ta.rec('AX37', 'Enrolment creates one empty mark per assessment per student, is idempotent, and refuses other institutions'' students',
+    n = '4' AND (SELECT count(*) FROM marks WHERE course_id = cid::int) = 4 AND (SELECT count(*) FROM marks WHERE course_id = cid::int AND current_value IS NOT NULL) = 0
+    AND ta.q_as(1, format('select admin_enroll(1, %s, ARRAY[5, 6])::text', cid)) = '0'
+    AND ta.q_as(1, format('select admin_enroll(1, %s, ARRAY[%s])::text', cid, (SELECT user_id FROM users WHERE email = 'stu@beta.example'))) LIKE 'ERROR%not an active student of your institution%'
+    AND ta.q_as(a2, format('select admin_enroll(%s, %s, ARRAY[5])::text', a2, cid)) LIKE 'ERROR%no such course%', n);
+  -- marks of the new course work through the normal ledger: faculty 2 enters one, then the new maximum is protected
+  PERFORM ta.q_as(2, format('select apply_change((select mark_id from marks where course_id = %s and student_id = 5 and assessment_type = ''CIE-1''), 38, ''entered'', 2)::text', cid));
+  PERFORM ta.rec('AX38', 'A mark entered in the new course goes through the hash chain; lowering the maximum below it is refused',
+    (SELECT count(*) FROM mark_revisions WHERE course_id = cid::int) = 1
+    AND ta.q_as(1, format('select admin_set_assessment(1, %s, ''CIE-1'', 30, now() + interval ''10 days'')::text', cid)) LIKE 'ERROR%existing marks exceed%'
+    AND (SELECT ok FROM verify_chain(cid::int)));
+  PERFORM ta.q_as(1, format('select admin_set_course_faculty(1, %s, 3)::text', cid));
+  PERFORM ta.rec('AX39', 'Reassigning the course faculty works within the institution only',
+    (SELECT faculty_id FROM courses WHERE course_id = cid::int) = 3
+    AND ta.q_as(1, format('select admin_set_course_faculty(1, %s, %s)::text', cid, (SELECT user_id FROM users WHERE email = 'hod@beta.example'))) LIKE 'ERROR%no such person%');
+
+  -- audit log
+  n_log := (SELECT count(*) FROM admin_actions WHERE institution_id = 1);
+  n_pw := (SELECT count(*) FROM admin_actions WHERE detail::text ILIKE '%Temporary123%' OR detail::text ILIKE '%Reset-by-admin9%' OR detail::text ILIKE '%Brand-new-pass1%');
+  e1 := ta.try('UPDATE admin_actions SET action = ''x''');
+  e2 := ta.try('DELETE FROM admin_actions');
+  e3 := ta.try('TRUNCATE admin_actions');
+  PERFORM ta.rec('AX40', 'Every administrative action is in the audit log, which is append-only and holds no password',
+    n_log >= 12 AND n_pw = 0 AND e1 LIKE 'ERROR%append-only%' AND e2 LIKE 'ERROR%append-only%' AND e3 LIKE 'ERROR%append-only%',
+    format('log=%s pw=%s | %s | %s | %s', n_log, n_pw, e1, e2, e3));
+  PERFORM ta.rec('AX41', 'The audit log is readable only by administrators, and only for their own institution',
+    ta.q_as(1, 'select count(*) from admin_actions where institution_id <> 1')::int = 0 AND ta.q_as(1, 'select count(*) from admin_actions')::int >= 12
+    AND ta.q_as(3, 'select count(*) from admin_actions')::int = 0 AND ta.q_as(a2, 'select count(*) from admin_actions')::int = 0
+    AND ta.q_as(1, 'select count(*) from admin_actions a where a.admin_id <> 1')::int = 0);
+  PERFORM ta.rec('AX42', 'Administration did not disturb the ledger: all chains still verify', (SELECT bool_and(chain_ok AND marks_ok AND batches_ok) FROM verify_all_chains()));
+END $$;
+
 -- G. the base ledger is still clean after all of the above (the app layer never touched it) -------------------
 DO $$ BEGIN
   PERFORM ta.rec('AX25', 'All chains still verify after the application-layer activity',
