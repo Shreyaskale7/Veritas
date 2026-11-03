@@ -66,7 +66,7 @@ Every suite builds its own scratch database; none touches the real `veritas` dat
 Regenerate the report and diagrams with `python docs/make_docs.py`.
 
 ## Videos
-`brag-output/veritas_full_demo.mp4` (1:30 walkthrough including CSV import, notifications, scheduled checks, transcripts with QR, offline proofs and a second institution),
+`brag-output/veritas_full_demo.mp4` (just under 2 minutes: marks workflow, CSV import, notifications, scheduled integrity checks, transcripts with QR, offline proofs, adding people with a forced first password change, courses and enrolment, the admin log, a phone layout and a second institution),
 `brag-output/brag.mp4` (21 s launch clip), recorded by the scripts in `brag-output/work/`.
 
 ## Known limits

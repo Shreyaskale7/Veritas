@@ -11,6 +11,13 @@ WITNESS_FILE = os.path.join(HERE, "demo_witness.jsonl")
 IMPORT_CSV = os.path.join(tempfile.gettempdir(), "veritas_class_marks.csv")
 
 
+def phone_card(a, b):
+    ph = lambda img: '<div style="width:300px;height:650px;border-radius:38px;border:6px solid #1e293b;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6);background:#070b14"><img style="width:100%;height:100%;object-fit:cover;object-position:top" src="data:image/jpeg;base64,' + img + '"></div>'
+    return CARD_CSS + """<div class="c mid a" style="top:60px">Works on a phone</div>
+      <div class="a" style="position:absolute;left:0;right:0;top:170px;display:flex;justify-content:center;gap:90px;animation-delay:.3s">""" + ph(a) + ph(b) + """</div>
+      <div class="c sub a" style="top:850px;animation-delay:1s">Slide-out menu, tables that scroll, WCAG 2.1 AA checked on every screen</div>"""
+
+
 def proof_card(output):
     lines = "".join('<div class="l mono" style="font-size:30px;margin:12px 0">%s</div>' % o for o in output.splitlines())
     return CARD_CSS + """<div class="c mid a" style="top:90px">A student proves one mark, offline</div>
@@ -77,7 +84,7 @@ CARDS = {
   <div class="li a" style="animation-delay:.9s"><b>&#10003;</b><span>Marks change only via <span class=hl>apply_change()</span></span></div>
   <div class="li a" style="animation-delay:1.5s"><b>&#10003;</b><span>Maker &ne; checker, enforced by a <span class=hl>trigger</span></span></div>
   <div class="li a" style="animation-delay:2.1s"><b>&#10003;</b><span><span class=hl>Row-level security</span> per role and per institution</span></div>
-  <div class="li a" style="animation-delay:2.7s"><b>&#10003;</b><span>109 SQL &middot; 11 cross-checks &middot; 3 concurrency &middot; 32 API &middot; 12 browser tests pass</span></div>
+  <div class="li a" style="animation-delay:2.7s"><b>&#10003;</b><span>350 automated checks pass: SQL, API, browser, accessibility</span></div>
   <div class="li a" style="animation-delay:3.3s"><b>&#10003;</b><span>Per-course chains: <span class=hl>6.8&times;</span> a global chain at 16 clients</span></div></div>""",
  "outro": CARD_CSS + f"""<div class="c a" style="top:260px">{SHIELD}</div><div class="c big a" style="top:410px;animation-delay:.2s">Veritas</div>
   <div class="c mid a" style="top:650px;animation-delay:.6s">Tamper-evident marks &amp; certificates</div>
@@ -209,6 +216,37 @@ def run():
                 cap("Each alert says why it fired; a checker rules on it", 2.4)
                 click(page.locator("[id^=confirm-]").first); hold(1.4)
 
+            # ---- administration: add a person, forced password change, course + assessment + enrolment
+            nav("People")
+            cap("Administrators add people in the app", 0.0)
+            click(page.locator("#add-person-btn")); hold(0.3)
+            type_in(page.locator("#p-name"), "Kavya Rao"); type_in(page.locator("#p-email"), "kavya.rao@rvce.example")
+            type_in(page.locator("#p-usn"), "1RV24CD088"); type_in(page.locator("#p-branch"), "CSE"); type_in(page.locator("#p-sem"), "5")
+            click(page.locator("#p-submit")); page.wait_for_selector("#temp-password"); hold(0.4)
+            cap("A one-time password is shown once and never stored", 0.0)
+            temp = page.locator("#temp-password").inner_text().strip(); hold(1.8)
+            click(page.locator(".modal-footer").get_by_role("button", name="Done")); hold(0.3)
+            page.evaluate(SETCAP, ""); signout()
+            page.goto(URL + "/login"); page.wait_for_selector("#email"); hold(0.3)
+            type_in(page.locator("#email"), "kavya.rao@rvce.example"); type_in(page.locator("#password"), temp)
+            click(page.locator("#login-btn")); page.wait_for_selector("#force-h"); hold(0.4)
+            cap("Their first sign-in forces a password of their own", 0.0)
+            type_in(page.locator("#old-pw"), temp); type_in(page.locator("#new-pw"), "Kavya-own-pass-5"); type_in(page.locator("#again-pw"), "Kavya-own-pass-5")
+            hold(0.9); click(page.locator("#pw-submit")); page.wait_for_selector("#main"); hold(1.4)
+            page.evaluate(SETCAP, ""); signout(); login("admin@rvce.example")
+            nav("Courses")
+            cap("Courses, freeze dates and enrolment are set in the app", 0.0)
+            click(page.locator("#add-course-btn")); hold(0.3)
+            type_in(page.locator("#c-code"), "CD777TA"); type_in(page.locator("#c-title"), "Compilers"); type_in(page.locator("#c-credits"), "4"); type_in(page.locator("#c-sem"), "6")
+            page.select_option("#c-fac", label="Prof. Iyer"); hold(0.4); click(page.locator("#c-submit")); hold(1.3)
+            cc = page.locator("section", has_text="CD777TA")
+            cc.locator("input[type=datetime-local]").first.fill("2030-01-15T10:00"); hold(0.3)
+            click(cc.get_by_role("button", name="Add").first); hold(1.2)
+            click(cc.get_by_role("button", name="Enrol students")); hold(0.4)
+            click(page.locator("label", has_text="1RV24CD088").locator("input")); click(page.locator("#enroll-submit")); hold(1.4)
+            nav("Admin log")
+            cap("Every administrative change is logged, never a password", 2.4)
+
             # ---- certificates: transcript with PDF + QR, scanned by a logged-out visitor
             page.evaluate(SETCAP, ""); signout(); login("hegde@rvce.example")
             nav("Certificates")
@@ -237,6 +275,20 @@ def run():
             res = subprocess.run([sys.executable, os.path.join(HERE_ROOT, "verify_disclosure.py"), proof_path, "--witness", WITNESS_FILE], capture_output=True, text=True, encoding="utf-8")
             CARDS["proof"] = proof_card(res.stdout.strip() or res.stderr.strip())
             card("proof", 4.0)
+
+            # ---- the same app on a phone
+            import base64
+            pctx = b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2)
+            ppage = pctx.new_page(); ppage.set_default_timeout(20000)
+            pcdp = pctx.new_cdp_session(ppage)
+            ppage.goto(URL + "/login"); ppage.fill("#email", "asha@rvce.example"); ppage.fill("#password", PW); ppage.click("#login-btn")
+            ppage.wait_for_selector("#main tbody tr, #main .card"); ppage.wait_for_timeout(900)
+            shot1 = pcdp.send("Page.captureScreenshot", {"format": "jpeg", "quality": 88})["data"]
+            ppage.click(".menu-btn"); ppage.wait_for_timeout(600)
+            shot2 = pcdp.send("Page.captureScreenshot", {"format": "jpeg", "quality": 88})["data"]
+            pctx.close()
+            CARDS["phone"] = phone_card(shot1, shot2)
+            card("phone", 4.2)
 
             # ---- a second institution sees only its own data
             page.goto(URL + "/marks"); page.wait_for_selector("tbody tr, .card"); signout()      # back to the app (the card replaced the page), then out
