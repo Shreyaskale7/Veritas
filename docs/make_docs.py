@@ -190,7 +190,7 @@ THREATS = [
     ("Verifier races an anchor and raises a false alarm", "One lock serialises witness writes and checks", "API W05"),
 ]
 TESTS = [("Ledger suite (SQL)", 84), ("Application-layer suite (SQL, incl. isolation and administration)", 42), ("Python cross-checks and attacks", 11), ("Concurrency", 3),
-         ("API end-to-end (incl. isolation and race checks)", 32), ("Backup / restore", 6), ("Browser end-to-end (Chrome)", 12)]
+         ("API end-to-end (incl. isolation, accounts, mail)", 52), ("Backup / restore", 6), ("Browser end-to-end (Chrome)", 19), ("Accessibility and phone layout (axe, WCAG A/AA)", 133)]
 
 
 def report(tables, cols, pk, fk, trig, svg_er, b1, b3):
@@ -266,6 +266,9 @@ certificates store only a salted hash and verify publicly with a QR code.</p>
  ("Anomaly detection", "IsolationForest plus rules over revision features; alerts explain why they fired and are triaged by a checker; model version is recorded"),
  ("Certificates", "Issue custom certificates or ledger-built transcripts; PDF with scan-to-verify QR stored write-once; public verifier works from the QR alone"),
  ("Selective disclosure", "A student exports a proof of one revision (fields, Merkle path, witness record); verify_disclosure.py checks it offline without revealing other marks"),
+ ("Administration", "Add students, faculty and administrators; create courses; set assessments, maximum marks and freeze dates; assign faculty; enrol students; deactivate people. Each change is a SECURITY DEFINER function confined to the administrator's institution and written to an append-only admin log that never holds a password"),
+ ("Accounts", "Everyone changes their own password (10+ characters, letter and digit); administrators issue one-time passwords; a temporary or reset password forces a new one at next sign-in; deactivation ends open sessions at once; every notification can also be e-mailed (SMTP), with a per-person opt-out"),
+ ("Accessibility and phones", "WCAG 2.1 A/AA checked automatically on every screen for every role at desktop and phone size; slide-out menu, skip link, labelled forms, keyboard-reachable tables, real dialogs (focus trap, Escape), AA colour contrast"),
  ("Security", "Login throttling, per-session CSRF token, random session secret, optional HTTPS-only cookies; Caddy gives automatic TLS in the Docker stack"),
  ("Operations", "backup_restore.py backs up only a verified ledger and proves each restore; Docker Compose stack; GitHub Actions CI"),
  ("Multi-institution", "Every user and course belongs to an institution. Restrictive row-level-security policies isolate every table per institution; triggers refuse a course, faculty member or student from different institutions; admin dashboards, directory, sealing, anchoring, transcripts, alerts and notifications are scoped; the scheduler verifies each institution separately"),
@@ -277,7 +280,7 @@ certificates store only a salted hash and verify publicly with a QR code.</p>
 <h2>10. Limits and future work</h2>
 <ul><li>The witness is only outside the administrator's reach if it is pushed to a remote they do not control; on one machine it is tamper-evident, not tamper-proof. The immudb backend is written but untested.</li>
 <li>Revisions made after the last anchor are not yet pinned; the scheduler shortens that window (default 15 minutes).</li>
-<li>Single sign-on (OIDC) is not implemented; accounts use bcrypt passwords with throttling.</li>
+<li>Single sign-on (OIDC) is not implemented; accounts use bcrypt passwords with throttling. E-mail needs an SMTP server to be configured.</li>
 <li>The Docker stack has not been run in the development environment (no Docker daemon).</li>
 <li>The witness (one file or git repo) is shared by all institutions; records carry the institution slug and each admin only verifies their own, but the file itself is common.</li></ul>
 </body></html>"""

@@ -26,9 +26,12 @@ const NAV = {
     { to: '/integrity', icon: '🔐', label: 'Integrity' },
     { to: '/requests', icon: '📝', label: 'Requests' },
     { to: '/alerts', icon: '⚠️', label: 'Alerts' },
+    { to: '/people', icon: '👥', label: 'People' },
+    { to: '/manage-courses', icon: '📚', label: 'Courses' },
     { to: '/directory', icon: '🗂️', label: 'Directory' },
     { to: '/certificates', icon: '🎓', label: 'Certificates' },
     { to: '/revisions', icon: '🔗', label: 'Ledger' },
+    { to: '/admin-log', icon: '📜', label: 'Admin log' },
   ],
 };
 
@@ -36,6 +39,7 @@ export function Sidebar({ user }) {
   const navigate = useNavigate();
   const toast = useToast();
   const [unread, setUnread] = useState(0);
+  const [open, setOpen] = useState(false);          // the slide-out menu on small screens
 
   useEffect(() => {                                   // keep the badge fresh without a page reload
     let alive = true;
@@ -48,6 +52,13 @@ export function Sidebar({ user }) {
   const navKey = user.can_approve && user.role === 'faculty' ? 'checker' : user.role;
   const navItems = NAV[navKey] || NAV.student;
 
+  useEffect(() => {
+    if (!open) return;
+    const esc = e => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('keydown', esc);
+    return () => document.removeEventListener('keydown', esc);
+  }, [open]);
+
   const initials = user.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
   async function handleLogout() {
@@ -57,9 +68,12 @@ export function Sidebar({ user }) {
   }
 
   return (
-    <aside className="sidebar">
+    <>
+    <button className="menu-btn" aria-label="Open menu" aria-expanded={open} aria-controls="sidebar-nav" onClick={() => setOpen(true)}>☰</button>
+    <div className={`scrim${open ? ' open' : ''}`} onClick={() => setOpen(false)} aria-hidden="true" />
+    <aside id="sidebar-nav" className={`sidebar${open ? ' open' : ''}`} aria-label="Main navigation" onClick={e => e.target.closest('a') && setOpen(false)}>
       <div className="sidebar-logo">
-        <div className="logo-icon">🔐</div>
+        <div className="logo-icon" aria-hidden="true">🔐</div>
         <span>Veritas</span>
       </div>
 
@@ -80,6 +94,9 @@ export function Sidebar({ user }) {
           <span className="nav-icon">🔔</span> Notifications
           {unread > 0 && <span id="unread-badge" className="badge badge-blue" style={{ marginLeft: 'auto' }}>{unread}</span>}
         </NavLink>
+        <NavLink to="/account" className={({ isActive }) => `sidebar-nav-item${isActive ? ' active' : ''}`}>
+          <span className="nav-icon">👤</span> Account
+        </NavLink>
         <NavLink to="/verify" className={({ isActive }) => `sidebar-nav-item${isActive ? ' active' : ''}`}>
           <span className="nav-icon">🔍</span> Verify Certificate
         </NavLink>
@@ -92,11 +109,12 @@ export function Sidebar({ user }) {
             <div className="user-name">{user.name}</div>
             <div className="user-role">{navKey === 'checker' ? 'HOD / Checker' : user.role}</div>
           </div>
-          <button className="btn btn-ghost btn-sm btn-icon" onClick={handleLogout} title="Sign out">
+          <button className="btn btn-ghost btn-sm btn-icon" onClick={handleLogout} title="Sign out" aria-label="Sign out">
             ↩
           </button>
         </div>
       </div>
     </aside>
+    </>
   );
 }

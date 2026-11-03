@@ -14,7 +14,7 @@ export function ToastProvider({ children }) {
   return (
     <ToastCtx.Provider value={add}>
       {children}
-      <div className="toast-area">
+      <div className="toast-area" role="status" aria-live="polite" aria-atomic="false">
         {toasts.map(t => (
           <div key={t.id} className={`toast toast-${t.type}`}>
             <span>{t.type === 'error' ? '✗' : t.type === 'success' ? '✓' : 'ℹ'}</span>

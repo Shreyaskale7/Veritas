@@ -1,0 +1,5 @@
+# Test and tooling dependencies (the app itself needs only web/backend/requirements.txt)
+playwright
+axe-playwright-python
+aiosmtpd
+httpx

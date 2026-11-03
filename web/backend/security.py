@@ -11,6 +11,7 @@ from db import admin_conn, execute, fetchone
 MAX_FAILS = int(os.environ.get("LOGIN_MAX_FAILS", "5"))          # per account within the window
 MAX_FAILS_IP = int(os.environ.get("LOGIN_MAX_FAILS_IP", "30"))   # per client address within the window
 WINDOW_MIN = int(os.environ.get("LOGIN_LOCK_MINUTES", "15"))
+PASSWORD_PAGES = {"/api/me", "/api/logout", "/api/password", "/api/health"}     # all that a person who must change their password may call
 CSRF_EXEMPT = {"/api/login", "/api/verify-certificate"}          # no session yet / public read-only check
 
 
@@ -41,6 +42,21 @@ def new_csrf(request: Request) -> str:
     token = request.session.get("csrf") or secrets.token_urlsafe(24)
     request.session["csrf"] = token
     return token
+
+
+def session_guard(request: Request) -> None:
+    """Global dependency (runs in the thread pool): ends the session of someone deactivated since they signed in, and keeps a person
+    whose password was reset (or who has a temporary one) on the change-password screen until they change it."""
+    user = request.session.get("user_id")
+    if not user or request.url.path in ("/api/login", "/api/verify-certificate"):
+        return
+    with admin_conn() as conn:
+        row = fetchone(conn, "SELECT active FROM users WHERE user_id = %s", (user,))
+    if not row or not row["active"]:
+        request.session.clear()
+        raise HTTPException(401, "sign in required")
+    if request.session.get("must_change") and request.url.path not in PASSWORD_PAGES:
+        raise HTTPException(403, "you must change your password first")
 
 
 async def csrf_guard(request: Request) -> None:

@@ -50,7 +50,7 @@ export function Revisions({ user }) {
           <div className="page-subtitle">Append-only, hash-chained revision history</div>
         </div>
         {courses.length > 0 && (
-          <select className="form-input" value={courseFilter}
+          <select className="form-input" aria-label="Filter by course" value={courseFilter}
             onChange={e => handleCourseChange(e.target.value)} style={{ width: 220 }}>
             <option value="">All courses</option>
             {courses.map(c => <option key={c.course_id} value={c.course_id}>{c.course_code} — {c.title}</option>)}

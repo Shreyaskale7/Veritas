@@ -29,7 +29,7 @@ jobs:
       - name: Install
         run: |
           sudo apt-get update && sudo apt-get install -y postgresql-client git
-          pip install -r web/backend/requirements.txt playwright
+          pip install -r web/backend/requirements.txt -r requirements-dev.txt
           cd web/frontend && npm ci
       - name: SQL suites (84 ledger tests + 42 application-layer tests)
         run: bash run_tests.sh
@@ -45,3 +45,5 @@ jobs:
         run: cd web/frontend && npm run build
       - name: Browser end-to-end
         run: python e2e_test.py
+      - name: Accessibility and phone layout (axe, WCAG A/AA)
+        run: python a11y_test.py

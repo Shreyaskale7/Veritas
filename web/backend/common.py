@@ -18,7 +18,7 @@ def me_row(request: Request):
         row = fetchone(
             conn,
             """
-            SELECT u.user_id, u.name, u.role, u.institution_id,
+            SELECT u.user_id, u.name, u.role, u.institution_id, u.email_notify,
                    s.usn, s.branch, s.semester,
                    f.employee_id, f.department, f.can_approve
               FROM users u

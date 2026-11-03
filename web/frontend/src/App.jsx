@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { api } from './api';
+import { installDialogEnhancer } from './dialogs';
 import { ToastProvider } from './Toast';
 import { Sidebar } from './Sidebar';
 import { Login } from './pages/Login';
@@ -14,23 +15,36 @@ import { Revisions } from './pages/Revisions';
 import { Directory } from './pages/Directory';
 import { VerifyCert } from './pages/VerifyCert';
 import { Notifications } from './pages/Notifications';
+import { People } from './pages/People';
+import { ManageCourses } from './pages/ManageCourses';
+import { AdminLog } from './pages/AdminLog';
+import { Account, ForcePasswordChange } from './pages/Account';
 
 function AppShell({ user, onLogin }) {
   if (!user) return <Login onLogin={onLogin} />;
+  if (user.must_change) {
+    return <ForcePasswordChange user={user} onDone={() => api.me().then(onLogin)}
+      onSignOut={async () => { try { await api.logout(); } catch {} window.location.reload(); }} />;
+  }
 
   const isAdmin = user.role === 'admin';
   const isStudent = user.role === 'student';
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main" onClick={e => { e.preventDefault(); document.getElementById('main')?.focus(); }}>Skip to content</a>
       <Sidebar user={user} />
-      <main className="main">
+      <main className="main" id="main" tabIndex={-1}>
         <Routes>
           <Route path="/marks" element={<Marks user={user} />} />
           <Route path="/requests" element={<Requests user={user} />} />
           <Route path="/certificates" element={<Certificates user={user} />} />
           <Route path="/verify" element={<VerifyCert />} />
           <Route path="/notifications" element={<Notifications />} />
+          <Route path="/account" element={<Account user={user} onRefresh={() => api.me().then(onLogin)} />} />
+          {isAdmin && <Route path="/people" element={<People user={user} />} />}
+          {isAdmin && <Route path="/manage-courses" element={<ManageCourses />} />}
+          {isAdmin && <Route path="/admin-log" element={<AdminLog />} />}
           {!isStudent && <Route path="/revisions" element={<Revisions user={user} />} />}
           {isStudent && <Route path="/sgpa" element={<SGPA user={user} />} />}
           {isStudent && <Route path="/revisions" element={<Revisions user={user} />} />}
@@ -57,6 +71,7 @@ function PublicVerify() {
 
 export default function App() {
   const [user, setUser] = useState(undefined); // undefined = loading, null = not authed
+  useEffect(() => installDialogEnhancer(), []);
 
   useEffect(() => {
     api.me().then(setUser).catch(() => setUser(null));

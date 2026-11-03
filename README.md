@@ -33,13 +33,16 @@ environment (no Docker daemon there); the files are syntax-checked.
 | Anomalies | IsolationForest plus rules; each alert says why it fired; checkers confirm or dismiss; model version recorded |
 | Certificates | Custom certificates and ledger-built **transcripts**; PDF with scan-to-verify **QR**, stored write-once; public verifier works from the QR alone |
 | Disclosure | A student exports a proof of one revision; `verify_disclosure.py proof.json` checks it offline without revealing other marks |
-| Notifications | Requests, decisions, mark changes, alerts, certificates, integrity failures |
+| Notifications | Requests, decisions, mark changes, alerts, certificates, integrity failures; also by e-mail when SMTP is set up (per-person opt-out) |
+| Administration | People, courses, assessments (max marks, freeze dates), faculty assignment, enrolment, deactivation, all in the app; append-only admin log |
+| Accounts | Change password, administrator-issued one-time passwords with forced change, deactivation ends sessions at once |
+| Accessibility | WCAG 2.1 A/AA checked automatically on every screen at desktop and phone size; slide-out menu, skip link, labelled forms, dialog focus handling |
 | Security | Row-level security per role **and per institution**, login throttling, per-session CSRF token, random session secret, optional HTTPS-only cookies |
 | Operations | `ops/backup_restore.py` (backs up only a verified ledger; every restore proves itself), Docker Compose, GitHub Actions CI |
 
 Configuration (environment): `SESSION_SECRET`, `SESSION_HTTPS=1`, `WITNESS_TYPE=file|git|immudb`, `WITNESS_PATH`, `WITNESS_GIT_DIR`, `WITNESS_GIT_REMOTE`,
 `VERITAS_VERIFY_EVERY` / `VERITAS_ANCHOR_EVERY` / `VERITAS_SCORE_EVERY` (seconds, 0 = off), `VERITAS_SCHEDULER=0`, `INTEGRITY_WEBHOOK`, `SMTP_HOST` + `ALERT_EMAIL_TO`,
-`LOGIN_MAX_FAILS`, `VERITAS_PUBLIC_URL`, `CORS_ORIGINS`.
+`LOGIN_MAX_FAILS`, `VERITAS_PUBLIC_URL`, `CORS_ORIGINS`, `SMTP_PORT`/`SMTP_USER`/`SMTP_PASSWORD`/`ALERT_EMAIL_FROM`, `VERITAS_MAIL_EVERY`.
 
 ## How it works
 - `mark_revisions` is append-only and hash-chained per course by a trigger; `apply_change()` is the only write path for marks.
@@ -50,12 +53,14 @@ Configuration (environment): `SESSION_SECRET`, `SESSION_HTTPS=1`, `WITNESS_TYPE=
 ## Tests (all pass)
 ```bash
 export PGHOST=127.0.0.1 PGUSER=postgres PGPASSWORD=postgres      # psql on PATH
+pip install -r web/backend/requirements.txt -r requirements-dev.txt
 bash run_tests.sh              # 84 ledger tests + 42 application-layer tests (scratch databases)
 python python_tests.py         # 11 independent cross-checks and attacks
 python concurrency_test.py     # 3
-python api_tests.py            # 32 API end-to-end tests (own database, own API on :8100)
+python api_tests.py            # 52 API end-to-end tests (own database, own API on :8100, fake SMTP server)
 python ops/test_backup_restore.py   # 6
-python e2e_test.py             # 12 browser tests in Chrome (own database, API :8200, build :4273)
+python e2e_test.py             # 19 browser tests in Chrome (own database, API :8200, build :4273)
+python a11y_test.py            # 133 accessibility / phone-layout checks (axe, WCAG A/AA; own database, API :8300, build :4373)
 ```
 Every suite builds its own scratch database; none touches the real `veritas` database. Benchmarks: `results/bench_results.md`.
 Regenerate the report and diagrams with `python docs/make_docs.py`.
@@ -68,5 +73,7 @@ Regenerate the report and diagrams with `python docs/make_docs.py`.
 - The witness is external only when pushed to a remote the DBA does not control; on one machine it is tamper-evident, not tamper-proof. The immudb backend is untested.
 - Revisions after the last anchor are not pinned until the next anchor (the scheduler shortens the window; default 15 minutes).
 - No single sign-on; accounts use bcrypt passwords with throttling.
+- E-mail needs `SMTP_HOST`; without it notifications stay in-app only.
+- Accessibility is checked automatically (axe) and by behaviour tests; it has not had a manual screen-reader review.
 - The witness is one file or git repo shared by all institutions (records carry the institution slug; each admin verifies only their own).
 - A transcript PDF is stored when issued; regenerating it later from changed marks would (correctly) not verify.

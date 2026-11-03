@@ -23,9 +23,10 @@ import scheduler  # noqa: E402
 from anomaly import score_revisions  # noqa: E402
 from common import me_row, pg_err, uid  # noqa: E402
 from db import admin_conn, app_conn, execute, fetchall, fetchone  # noqa: E402
-from security import check_login_allowed, client_ip, csrf_guard, new_csrf, record_login  # noqa: E402
+import admin as admin_api  # noqa: E402
+from security import check_login_allowed, client_ip, csrf_guard, new_csrf, record_login, session_guard  # noqa: E402
 
-app = FastAPI(title="Veritas", dependencies=[Depends(csrf_guard)])
+app = FastAPI(title="Veritas", dependencies=[Depends(csrf_guard), Depends(session_guard)])
 # No hardcoded fallback secret: without SESSION_SECRET a random one is used, so sessions end when the API restarts.
 SESSION_SECRET = os.environ.get("SESSION_SECRET") or secrets.token_hex(32)
 app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET, same_site="lax",
@@ -39,6 +40,7 @@ app.add_middleware(
 )
 app.include_router(certs.router)
 app.include_router(features.router)
+app.include_router(admin_api.router)
 
 
 @app.on_event("startup")
@@ -99,10 +101,10 @@ def login(body: LoginIn, request: Request):
         row = fetchone(
             conn,
             """
-            SELECT u.user_id, u.name, u.role
+            SELECT u.user_id, u.name, u.role, c.must_change
               FROM users u
               JOIN app_credentials c ON c.user_id = u.user_id
-             WHERE lower(u.email) = lower(%s)
+             WHERE lower(u.email) = lower(%s) AND u.active
                AND c.password_hash = crypt(%s, c.password_hash)
             """,
             (body.email.strip(), body.password),
@@ -112,7 +114,8 @@ def login(body: LoginIn, request: Request):
         raise HTTPException(401, "invalid email or password")
     request.session.clear()
     request.session["user_id"] = row["user_id"]
-    return {**row, "csrf": new_csrf(request)}
+    request.session["must_change"] = bool(row["must_change"])
+    return {"user_id": row["user_id"], "name": row["name"], "role": row["role"], "must_change": bool(row["must_change"]), "csrf": new_csrf(request)}
 
 
 @app.post("/api/logout")
@@ -123,7 +126,44 @@ def logout(request: Request):
 
 @app.get("/api/me")
 def me(request: Request):
-    return {**me_row(request), "csrf": new_csrf(request)}
+    return {**me_row(request), "must_change": bool(request.session.get("must_change")), "csrf": new_csrf(request)}
+
+
+class PasswordIn(BaseModel):
+    old_password: str
+    new_password: str
+
+
+@app.post("/api/password")
+def change_password(body: PasswordIn, request: Request):
+    """Everyone changes their own password here; a wrong current password counts towards the sign-in lockout."""
+    user = uid(request)
+    ip = client_ip(request)
+    with admin_conn() as conn:
+        email = fetchone(conn, "SELECT email FROM users WHERE user_id = %s", (user,))["email"]
+    check_login_allowed(email, ip)
+    with app_conn(user) as conn:
+        try:
+            execute(conn, "SELECT change_password(%s::int, %s::text, %s::text)", (user, body.old_password, body.new_password))
+        except Exception as e:
+            msg = pg_err(e)
+            if "current password is wrong" in msg:
+                record_login(email, ip, False)
+            raise HTTPException(400, msg) from e
+    request.session["must_change"] = False
+    return {"ok": True}
+
+
+class EmailPrefIn(BaseModel):
+    email_notify: bool
+
+
+@app.post("/api/account/email-notify")
+def email_notify(body: EmailPrefIn, request: Request):
+    user = uid(request)
+    with app_conn(user) as conn:
+        execute(conn, "SELECT set_email_notify(%s::int, %s::boolean)", (user, body.email_notify))
+    return {"ok": True}
 
 
 @app.get("/api/marks")

@@ -79,7 +79,7 @@ export function Alerts({ user }) {
           <div className="page-subtitle">ML-detected suspicious mark revisions (IsolationForest + rules)</div>
         </div>
         <div className="flex-row">
-          <select id="alert-course" className="form-input" value={courseFilter} onChange={e => setCourseFilter(e.target.value)} style={{ width: 170 }}>
+          <select id="alert-course" className="form-input" aria-label="Filter alerts by course" value={courseFilter} onChange={e => setCourseFilter(e.target.value)} style={{ width: 170 }}>
             <option value="">All courses</option>
             {courseCodes.map(c => <option key={c} value={c}>{c}</option>)}
           </select>

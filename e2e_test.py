@@ -104,7 +104,7 @@ def _run(wit):
             except Exception:
                 print("login failed for", email); dump(); raise
         def signout():
-            page.locator("button").first.click(); page.wait_for_url("**/login"); page.wait_for_timeout(1200); page.wait_for_load_state("load"); page.wait_for_selector("#email")   # the app reloads itself after sign-out: let it finish
+            page.get_by_role("button", name="Sign out").click(); page.wait_for_url("**/login"); page.wait_for_timeout(1200); page.wait_for_load_state("load"); page.wait_for_selector("#email")   # the app reloads itself after sign-out: let it finish
         def toast(text):
             try:
                 page.locator(".toast", has_text=text).first.wait_for()
@@ -157,7 +157,7 @@ def _run(wit):
             page.locator(".cert-card").first.click()
             page.get_by_role("button", name="View PDF").wait_for()
             rec("U07", "A transcript is issued from the ledger and its PDF is available in the certificate dialog", True)
-            page.get_by_role("button", name="Close").click(); signout()
+            page.locator(".modal-footer").get_by_role("button", name="Close").click(); signout()
             # a public visitor scans the QR link (made through the API so we can read the link)
             h = httpx.Client(base_url=API); r = h.post("/api/login", json={"email": "hegde@rvce.example", "password": PW}); tok = r.json()["csrf"]
             sid = next(s["user_id"] for s in h.get("/api/directory").json()["students"] if s["usn"] == "1RV24CD002")
@@ -189,6 +189,47 @@ def _run(wit):
             page.get_by_role("link", name="Notifications").click(); page.locator("#read-all-btn").click()
             page.wait_for_function("document.querySelector('#unread-badge') === null")
             rec("U12", "Notification badge clears after 'mark all read'", True)
+
+            # --- administration through the screens: add a person, forced password change, course, assessment, enrolment ---
+            signout(); login("admin@rvce.example")
+            page.get_by_role("link", name="People").click(); page.click("#add-person-btn")
+            page.fill("#p-name", "Kavya Rao"); page.fill("#p-email", "kavya.rao@rvce.example"); page.fill("#p-usn", "1RV24CD088")
+            page.fill("#p-branch", "CSE"); page.fill("#p-sem", "5"); page.click("#p-submit")
+            temp = page.locator("#temp-password").inner_text().strip()
+            rec("U13", "An administrator adds a student; a one-time password is shown once", len(temp) >= 10 and page.get_by_text("kavya.rao@rvce.example").count() > 0)
+            page.get_by_role("button", name="Done").click(); signout()
+            page.goto(WEB + "/login"); page.fill("#email", "kavya.rao@rvce.example"); page.fill("#password", temp); page.click("#login-btn")
+            page.wait_for_selector("#force-h")
+            page.fill("#old-pw", temp); page.fill("#new-pw", "Kavya-own-pass-5"); page.fill("#again-pw", "Kavya-own-pass-5"); page.click("#pw-submit")
+            page.wait_for_selector("#main")
+            rec("U14", "First sign-in forces a new password, then the app opens", page.locator("#force-h").count() == 0)
+            page.get_by_role("link", name="Account").click(); page.wait_for_selector("#email-notify")
+            page.locator("#email-notify").uncheck(); toast("E-mail notifications off")
+            rec("U15", "The Account page stores the e-mail preference", True)
+            signout(); login("admin@rvce.example")
+            page.get_by_role("link", name="Courses").click(); page.click("#add-course-btn")
+            page.fill("#c-code", "CD777TA"); page.fill("#c-title", "Compilers"); page.fill("#c-credits", "4"); page.fill("#c-sem", "6")
+            page.select_option("#c-fac", label="Prof. Iyer"); page.click("#c-submit"); toast("Course created")
+            card = page.locator("section", has_text="CD777TA")
+            card.locator("input[type=datetime-local]").first.fill("2030-01-15T10:00")
+            card.get_by_role("button", name="Add").first.click(); toast("CIE-1 saved")
+            card.get_by_role("button", name="Enrol students").click()
+            page.locator("label", has_text="1RV24CD088").locator("input").check(); page.click("#enroll-submit"); toast("mark slot")
+            rec("U16", "An administrator creates a course, sets an assessment and its freeze date, and enrols the new student", True)
+            signout(); login("iyer@rvce.example")
+            page.get_by_placeholder("Filter").fill("CD777TA")
+            row("Kavya Rao", "CIE-1").get_by_role("button", name="Edit").click()
+            page.fill("#apply-value", "42"); page.fill("#apply-reason", "first mark of the new course"); page.click("#apply-submit")
+            toast("Mark updated"); rec("U17", "The assigned faculty member sees the new course's marks and enters one through the ledger", True)
+            signout(); login("admin@rvce.example")
+            page.get_by_role("link", name="People").click(); page.wait_for_selector("text=Kavya Rao")
+            page.get_by_role("button", name="Deactivate Kavya Rao").click(); toast("Deactivated")
+            signout(); page.goto(WEB + "/login"); page.fill("#email", "kavya.rao@rvce.example"); page.fill("#password", "Kavya-own-pass-5"); page.click("#login-btn")
+            toast("invalid email or password")
+            rec("U18", "A deactivated person cannot sign in", True)
+            login("admin@rvce.example")
+            page.get_by_role("link", name="Admin log").click(); page.wait_for_selector("text=Added a person")
+            rec("U19", "The admin log lists the actions just performed", page.get_by_text("Enrolled students").count() > 0 and page.get_by_text("Created a course").count() > 0)
         except Exception:
             dump(); raise
         br.close()

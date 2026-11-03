@@ -11,12 +11,14 @@ import time
 import traceback
 
 import integrity
+import mailer
 from anomaly import score_revisions
 
 JOBS = {
     "verify": (int(os.environ.get("VERITAS_VERIFY_EVERY", "300")), lambda: [integrity.verify_all(institution_id=i["institution_id"]) for i in integrity.institutions()]),
     "anchor": (int(os.environ.get("VERITAS_ANCHOR_EVERY", "900")), lambda: (integrity.seal_all(), integrity.anchor_all())),
     "score": (int(os.environ.get("VERITAS_SCORE_EVERY", "1800")), lambda: _score()),
+    "mail": (int(os.environ.get("VERITAS_MAIL_EVERY", "30")), lambda: mailer.send_pending()),   # no-op unless SMTP_HOST is set
 }
 _stop = threading.Event()
 _thread: threading.Thread | None = None

@@ -90,4 +90,19 @@ export const api = {
   readNotifications: (ids = null) => req('POST', '/api/notifications/read', { ids }),
 
   directory: () => req('GET', '/api/directory'),
+
+  changePassword: (old_password, new_password) => req('POST', '/api/password', { old_password, new_password }),
+  setEmailNotify: (email_notify) => req('POST', '/api/account/email-notify', { email_notify }),
+
+  adminPeople: () => req('GET', '/api/admin/people'),
+  adminCreatePerson: (body) => req('POST', '/api/admin/people', body),
+  adminSetActive: (id, active) => req('POST', `/api/admin/people/${id}/active`, { active }),
+  adminSetApprover: (id, can_approve) => req('POST', `/api/admin/people/${id}/approver`, { can_approve }),
+  adminResetPassword: (id, password = null) => req('POST', `/api/admin/people/${id}/reset-password`, { password }),
+  adminCourses: () => req('GET', '/api/admin/courses'),
+  adminCreateCourse: (body) => req('POST', '/api/admin/courses', body),
+  adminSetCourseFaculty: (id, faculty_id) => req('POST', `/api/admin/courses/${id}/faculty`, { faculty_id }),
+  adminSetAssessment: (id, body) => req('POST', `/api/admin/courses/${id}/assessments`, body),
+  adminEnroll: (id, student_ids) => req('POST', `/api/admin/courses/${id}/enroll`, { student_ids }),
+  adminLog: () => req('GET', '/api/admin/log'),
 };

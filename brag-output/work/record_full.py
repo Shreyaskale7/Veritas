@@ -133,7 +133,7 @@ def run():
             page.fill("#email", email); page.fill("#password", PW)
             click(page.locator("#login-btn")); page.wait_for_url("**/marks"); page.wait_for_selector("tbody tr, .card"); hold(0.3)
         def signout():
-            page.evaluate(SETCAP, ""); click(page.locator("button").first); page.wait_for_url("**/login"); hold(0.3)
+            page.evaluate(SETCAP, ""); click(page.get_by_role("button", name="Sign out")); page.wait_for_url("**/login"); hold(0.3)
         def nav(label):
             print('NAV %.1f' % (time.time()-T0), label, flush=True)
             click(page.get_by_role("link", name=label)); hold(0.7)
@@ -200,7 +200,7 @@ def run():
             page.evaluate("()=>{const m=document.querySelector('main')||document.scrollingElement; m.scrollTo({top:380,behavior:'smooth'})}"); hold(0.6)
             click(page.get_by_role("button", name="Proof").first); hold(0.6)
             cap("Inclusion proof: one row checked against the witnessed root", 2.4)
-            click(page.get_by_role("button", name="Close")); hold(0.3)
+            click(page.locator(".modal-footer").get_by_role("button", name="Close")); hold(0.3)
             nav("Ledger")
             cap("The Ledger badge comes from a real verification", 2.0)
             nav("Alerts")
@@ -218,7 +218,7 @@ def run():
             click(page.locator("#cert-submit")); hold(1.5)
             click(page.locator(".cert-card").first); hold(0.6)
             cap("The PDF carries a QR code that verifies it", 2.2)
-            click(page.get_by_role("button", name="Close")); hold(0.3)
+            click(page.locator(".modal-footer").get_by_role("button", name="Close")); hold(0.3)
             h = httpx.Client(base_url="http://127.0.0.1:8000"); tok = h.post("/api/login", json={"email": "hegde@rvce.example", "password": PW}).json()["csrf"]
             sid = next(x["user_id"] for x in h.get("/api/directory").json()["students"] if x["usn"] == "1RV24CD002")
             link = h.post("/api/certificates", json={"student_id": sid, "cert_type": "NOC", "content": "No objection certificate."}, headers={"X-CSRF-Token": tok}).json()["verify_link"]

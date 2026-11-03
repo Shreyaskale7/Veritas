@@ -12,6 +12,17 @@ DB, PORT = "veritas_api", 8100
 BASE = f"http://127.0.0.1:{PORT}"
 PW = "veritas2026"
 results = []
+MAIL = []          # messages caught by the fake SMTP server
+
+
+class MailSink:
+    """aiosmtpd handler: records every message the API mails out."""
+    async def handle_DATA(self, server, session, envelope):
+        import email
+        msg = email.message_from_bytes(envelope.content)
+        body = msg.get_payload(decode=True)
+        MAIL.append({"to": ",".join(envelope.rcpt_tos), "subject": msg["Subject"] or "", "body": (body or b"").decode("utf-8", "replace")})
+        return "250 OK"
 
 
 def rec(tid, descr, ok, detail=""):
@@ -74,7 +85,10 @@ def main():
            "ADMIN_DATABASE_URL": f"postgresql://postgres:{os.environ.get('PGPASSWORD', 'postgres')}@127.0.0.1:5432/{DB}",
            "WITNESS_TYPE": "git", "WITNESS_GIT_DIR": witness_dir, "SESSION_SECRET": "test-secret",
            "VERITAS_VERIFY_EVERY": "4", "VERITAS_ANCHOR_EVERY": "0", "VERITAS_SCORE_EVERY": "0",
-           "VERITAS_PUBLIC_URL": "http://127.0.0.1:5173"}
+           "VERITAS_PUBLIC_URL": "http://127.0.0.1:5173", "SMTP_HOST": "127.0.0.1", "SMTP_PORT": "8025", "VERITAS_MAIL_EVERY": "3"}
+    from aiosmtpd.controller import Controller
+    sink = Controller(MailSink(), hostname="127.0.0.1", port=8025)
+    sink.start()
     api = subprocess.Popen([sys.executable, "-m", "uvicorn", "main:app", "--port", str(PORT)], cwd=os.path.join(HERE, "web", "backend"),
                            env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
@@ -84,6 +98,7 @@ def main():
             except Exception: time.sleep(1)
         run(witness_dir)
     finally:
+        sink.stop()
         api.terminate()
         try: api.wait(10)
         except Exception: api.kill()
@@ -204,6 +219,128 @@ def run(witness_dir):
     rec("I10", "Institution 2's own HOD can issue to its own student, and institution 1 cannot see it",
         hod2.post("/api/certificates", {"student_id": dir2["students"][0]["user_id"], "cert_type": "Bonafide", "content": "Beta student."}).status_code == 200
         and len(stu2.get("/api/certificates").json()) == 1 and len(asha.get("/api/certificates").json()) >= 1 and all(c["student_id"] != dir2["students"][0]["user_id"] for c in asha.get("/api/certificates").json()))
+
+    # ---- accounts: create, forced change, reset, deactivate -----------------------------------------------------
+    pw0 = "Temporary-Pass1"
+    made = admin.post("/api/admin/people", {"name": "Priya New", "email": "Priya.New@rvce.example", "role": "student", "password": pw0,
+                                            "usn": "1RV24CD050", "branch": "CSE", "semester": 5})
+    newbie = Client("priya.new@rvce.example", pw0)
+    me_new = newbie.get("/api/me").json() if newbie.csrf else {}
+    rec("P01", "An administrator creates a student; the new account signs in but is locked to the change-password screen",
+        made.status_code == 200 and newbie.csrf and me_new.get("must_change") is True and newbie.get("/api/marks").status_code == 403
+        and newbie.get("/api/me").status_code == 200, f"{made.text[:120]} {newbie.login_status}")
+    rec("P02", "Changing the password: wrong old, weak new and an unchanged password are refused (and the wrong old one counts towards lockout)",
+        newbie.post("/api/password", {"old_password": "not-my-password1", "new_password": "Fresh-secret-77"}).status_code == 400
+        and newbie.post("/api/password", {"old_password": pw0, "new_password": "short1"}).status_code == 400
+        and newbie.post("/api/password", {"old_password": pw0, "new_password": pw0}).status_code == 400)
+    ok_change = newbie.post("/api/password", {"old_password": pw0, "new_password": "Fresh-secret-77"})
+    rec("P03", "A valid change unlocks the app; the old password stops working and the new one works",
+        ok_change.status_code == 200 and newbie.get("/api/marks").status_code == 200 and Client("priya.new@rvce.example", pw0).login_status == 401
+        and Client("priya.new@rvce.example", "Fresh-secret-77").login_status == 200)
+    people = admin.get("/api/admin/people").json()
+    pid = next(x["user_id"] for x in people if x["email"] == "priya.new@rvce.example")
+    gen = admin.post(f"/api/admin/people/{pid}/reset-password", {})
+    tmp = gen.json().get("temporary_password") if gen.status_code == 200 else None
+    after = Client("priya.new@rvce.example", tmp) if tmp else None
+    rec("P04", "An administrator reset generates a one-time password (shown once), kills the old one and forces another change",
+        gen.status_code == 200 and tmp and len(tmp) >= 10 and Client("priya.new@rvce.example", "Fresh-secret-77").login_status == 401
+        and after.csrf and after.get("/api/me").json()["must_change"] is True)
+    session_before = Client("priya.new@rvce.example", tmp)
+    admin.post(f"/api/admin/people/{pid}/active", {"active": False})
+    rec("P05", "Deactivating someone ends their open session at once and blocks sign-in; reactivating restores it",
+        session_before.get("/api/me").status_code == 401 and Client("priya.new@rvce.example", tmp).login_status == 401
+        and admin.post(f"/api/admin/people/{pid}/active", {"active": True}).status_code == 200 and Client("priya.new@rvce.example", tmp).login_status == 200)
+    rec("P06", "Only administrators reach the admin API; an administrator of another institution cannot touch these people",
+        all(c.get("/api/admin/people").status_code == 403 for c in (iyer, hegde, asha))
+        and admin2.post(f"/api/admin/people/{pid}/reset-password", {}).status_code == 400
+        and admin2.post(f"/api/admin/people/{pid}/active", {"active": False}).status_code == 400
+        and "priya.new@rvce.example" not in [x["email"] for x in admin2.get("/api/admin/people").json()]
+        and sorted({x["email"].split("@")[1] for x in admin2.get("/api/admin/people").json()}) == ["beta.example"])
+    dup = admin.post("/api/admin/people", {"name": "Dup", "email": "asha@rvce.example", "role": "faculty", "employee_id": "E9", "department": "CSE"})
+    rec("P07", "Duplicate e-mail and incomplete people are refused with a clear message",
+        dup.status_code == 400 and "already registered" in dup.text
+        and admin.post("/api/admin/people", {"name": "No Dept", "email": "nd@rvce.example", "role": "faculty", "employee_id": "E10"}).status_code == 400)
+    hod_pw = admin.post("/api/admin/people", {"name": "Dr New HOD", "email": "newhod@rvce.example", "role": "faculty", "employee_id": "E11", "department": "CSE"}).json()
+    hod_id = next(x["user_id"] for x in admin.get("/api/admin/people").json() if x["email"] == "newhod@rvce.example")
+    rec("P08", "Leaving the password empty generates a temporary one; approver rights are granted and withdrawn by an administrator",
+        len(hod_pw.get("temporary_password") or "") >= 10 and admin.post(f"/api/admin/people/{hod_id}/approver", {"can_approve": True}).status_code == 200
+        and next(x for x in admin.get("/api/admin/people").json() if x["user_id"] == hod_id)["can_approve"] is True
+        and admin.post(f"/api/admin/people/{hod_id}/approver", {"can_approve": False}).status_code == 200
+        and admin.post(f"/api/admin/people/{pid}/approver", {"can_approve": True}).status_code == 400)
+
+    # ---- courses, assessments, freeze dates, enrolment ------------------------------------------------------
+    cr = admin.post("/api/admin/courses", {"course_code": "CD299TA", "title": "Distributed Systems", "credits": 4, "semester": 5, "faculty_id": hod_id})
+    new_cid = cr.json().get("course_id") if cr.status_code == 200 else None
+    rec("C06", "An administrator creates a course for an active faculty member; duplicates and bad values are refused",
+        cr.status_code == 200 and new_cid and admin.post("/api/admin/courses", {"course_code": "CD299TA", "title": "Again", "credits": 4, "semester": 5, "faculty_id": hod_id}).status_code == 400
+        and admin.post("/api/admin/courses", {"course_code": "CD298TA", "title": "Bad credits", "credits": 9, "semester": 5, "faculty_id": hod_id}).status_code == 400
+        and admin.post("/api/admin/courses", {"course_code": "CD297TA", "title": "Student teaches", "credits": 3, "semester": 5, "faculty_id": pid}).status_code == 400, cr.text[:120])
+    soon = (time.time() + 30 * 86400)
+    iso = lambda ts: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(ts))
+    a1 = admin.post(f"/api/admin/courses/{new_cid}/assessments", {"type": "CIE-1", "max_marks": 50, "freeze_at": iso(soon)})
+    a2 = admin.post(f"/api/admin/courses/{new_cid}/assessments", {"type": "SEE", "max_marks": 100, "freeze_at": iso(soon + 86400)})
+    asha_uid = next(s["user_id"] for s in admin.get("/api/directory").json()["students"] if s["usn"] == "1RV24CD001")
+    bharat_uid = next(s["user_id"] for s in admin.get("/api/directory").json()["students"] if s["usn"] == "1RV24CD002")
+    en = admin.post(f"/api/admin/courses/{new_cid}/enroll", {"student_ids": [asha_uid, bharat_uid]})
+    en2 = admin.post(f"/api/admin/courses/{new_cid}/enroll", {"student_ids": [asha_uid, bharat_uid]})
+    rec("C07", "Assessments are set and students enrolled (one empty mark per assessment each); enrolling twice adds nothing",
+        a1.status_code == 200 and a2.status_code == 200 and en.json().get("marks_created") == 4 and en2.json().get("marks_created") == 0, f"{a1.text} {en.text}")
+    listing = admin.get("/api/admin/courses").json()
+    mine = next(c for c in listing["courses"] if c["course_id"] == new_cid)
+    rec("C08", "The course list shows faculty, assessments, freeze state and enrolment; students and faculty offered are this institution's only",
+        mine["faculty_name"] == "Dr New HOD" and len(mine["assessments"]) == 2 and mine["enrolled"] == 2
+        and "stu@beta.example" not in str(listing["students"]) and all(f["user_id"] != next(x["user_id"] for x in admin2.get("/api/admin/people").json() if x["role"] == "faculty") for f in listing["faculty"]))
+    hod_login = Client("newhod@rvce.example", hod_pw["temporary_password"])
+    hod_login.post("/api/password", {"old_password": hod_pw["temporary_password"], "new_password": "HOD-new-pass-9"})
+    new_mark = next((m["mark_id"] for m in hod_login.get("/api/marks").json() if m["course_code"] == "CD299TA" and m["assessment_type"] == "CIE-1" and m["usn"] == "1RV24CD001"), None)
+    wrote = hod_login.post(f"/api/marks/{new_mark}/apply", {"new_value": 44, "reason": "first entry in new course", "expected_version": 0}) if new_mark else None
+    rec("C09", "The new course's faculty member sees exactly its marks and enters one through the normal hash chain; the student sees it",
+        new_mark and wrote.status_code == 200 and len([m for m in hod_login.get("/api/marks").json() if m["course_code"] == "CD299TA"]) == 4
+        and any(m["course_code"] == "CD299TA" and m["current_value"] is not None for m in asha.get("/api/marks").json()))
+    shrink = admin.post(f"/api/admin/courses/{new_cid}/assessments", {"type": "CIE-1", "max_marks": 30, "freeze_at": iso(soon)})
+    freeze_now = admin.post(f"/api/admin/courses/{new_cid}/assessments", {"type": "CIE-1", "max_marks": 50, "freeze_at": iso(time.time() - 3600)})
+    frozen_view = next(m for m in hod_login.get("/api/marks").json() if m["mark_id"] == new_mark)
+    rec("C10", "Max marks cannot drop below an entered mark; moving the freeze date into the past freezes it and direct edits are then refused",
+        shrink.status_code == 400 and "exceed" in shrink.text and freeze_now.status_code == 200 and frozen_view["frozen"] is True
+        and hod_login.post(f"/api/marks/{new_mark}/apply", {"new_value": 45, "reason": "after the freeze"}).status_code == 400)
+    swap = admin.post(f"/api/admin/courses/{new_cid}/faculty", {"faculty_id": next(x["user_id"] for x in admin.get("/api/admin/people").json() if x["email"] == "iyer@rvce.example")})
+    rec("C11", "Reassigning the course faculty hands the course to the other member; another institution's faculty is refused",
+        swap.status_code == 200 and any(m["course_code"] == "CD299TA" for m in iyer.get("/api/marks").json())
+        and admin.post(f"/api/admin/courses/{new_cid}/faculty", {"faculty_id": next(x["user_id"] for x in admin2.get("/api/admin/people").json() if x["role"] == "faculty")}).status_code == 400)
+    rec("C12", "Another institution's admin cannot see, change or enrol into these courses",
+        admin2.post(f"/api/admin/courses/{new_cid}/assessments", {"type": "CIE-2", "max_marks": 20, "freeze_at": iso(soon)}).status_code == 400
+        and admin2.post(f"/api/admin/courses/{new_cid}/enroll", {"student_ids": [asha_uid]}).status_code == 400
+        and new_cid not in [c["course_id"] for c in admin2.get("/api/admin/courses").json()["courses"]])
+    logrows = admin.get("/api/admin/log").json()
+    rec("C13", "The audit log shows who did what, readable by this institution's administrators only, with no password in it",
+        len(logrows) >= 12 and {"create_user", "reset_password", "deactivate_user", "create_course", "create_assessment", "enroll"} <= {r["action"] for r in logrows}
+        and "Fresh-secret-77" not in str(logrows) and pw0 not in str(logrows) and str(tmp) not in str(logrows)
+        and admin2.get("/api/admin/log").json() == [] and iyer.get("/api/admin/log").status_code == 403 and Client().get("/api/admin/log").status_code == 401)
+    rec("C14", "Account settings: the e-mail preference is stored and shown in /api/me",
+        hegde.post("/api/account/email-notify", {"email_notify": False}).status_code == 200 and hegde.get("/api/me").json()["email_notify"] is False)
+    hegde.post("/api/account/email-notify", {"email_notify": True})
+
+    # ---- e-mail for notifications (fake SMTP server) -------------------------------------------------------------
+    MAIL.clear()
+    asha.post("/api/account/email-notify", {"email_notify": True})
+    iyer.post("/api/requests", {"mark_id": mark_id(iyer, "1RV24CD001", "CD251TA", "CIE-1"), "proposed_value": 41, "reason": "second recheck result"})   # notifies the checker
+    time.sleep(8)
+    to_hegde = [m for m in MAIL if "hegde@rvce.example" in m["to"]]
+    rec("E01", "A new notification is e-mailed to the person it concerns, with a clear subject and a link", len(to_hegde) >= 1 and "decision" in to_hegde[0]["subject"].lower()
+        and "/requests" in to_hegde[0]["body"], f"{len(MAIL)} mail(s): {[m['subject'] for m in MAIL][:3]}")
+    hegde.post("/api/account/email-notify", {"email_notify": False})
+    before = len([m for m in MAIL if "hegde@rvce.example" in m["to"]])
+    iyer.post("/api/requests", {"mark_id": mark_id(iyer, "1RV24CD002", "CD251TA", "CIE-1"), "proposed_value": 39, "reason": "another recheck result"})
+    time.sleep(8)
+    rec("E02", "Someone who opted out gets no e-mail (the in-app notification still arrives)",
+        len([m for m in MAIL if "hegde@rvce.example" in m["to"]]) == before and any(n["kind"] == "request_filed" for n in hegde.get("/api/notifications").json()["items"]))
+    hegde.post("/api/account/email-notify", {"email_notify": True})
+
+    # ---- lockout through the change-password form -----------------------------------------------------------------
+    victim = Client("bharat@rvce.example")
+    for _ in range(5): victim.post("/api/password", {"old_password": "wrong-password-1", "new_password": "Whatever-pass-12"})
+    rec("P09", "Guessing the old password through the change-password form locks the account like a failed sign-in",
+        victim.post("/api/password", {"old_password": "wrong-password-1", "new_password": "Whatever-pass-12"}).status_code == 429 and Client("bharat@rvce.example").login_status == 429)
 
     # ---- selective disclosure ----------------------------------------------------------------------------
     revs = asha.get("/api/revisions").json()
