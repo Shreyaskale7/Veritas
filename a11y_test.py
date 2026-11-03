@@ -137,6 +137,8 @@ def run():
             login(page, "admin@rvce.example"); page.goto(WEB + "/people"); settle(page)
             opener = page.locator("#add-person-btn"); opener.click()
             page.wait_for_selector("[role=dialog]")
+            try: page.wait_for_function("document.querySelector('[role=dialog]').contains(document.activeElement)", timeout=3000)   # focus moves in a tick after it opens
+            except Exception: pass
             check(f"dialog has role, name and traps focus [{size}]", page.evaluate(
                 "(()=>{const d=document.querySelector('[role=dialog]');return d.getAttribute('aria-modal')==='true'&&!!d.getAttribute('aria-labelledby')&&d.contains(document.activeElement)})()"))
             for _ in range(25): page.keyboard.press("Tab")
